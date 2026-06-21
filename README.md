@@ -1,5 +1,7 @@
 # agenda
 
+[![CI](https://github.com/obliadp/agenda/actions/workflows/ci.yml/badge.svg)](https://github.com/obliadp/agenda/actions/workflows/ci.yml)
+
 A terminal dashboard that unifies the things you keep checking into one TUI you
 tab between:
 

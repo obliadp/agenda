@@ -62,19 +62,13 @@ func NewList[T Item]() List[T] {
 // list's scrolling and windowing account for multi-line rows. Items must
 // render exactly this many lines.
 func (l *List[T]) SetRowHeight(h int) {
-	if h < 1 {
-		h = 1
-	}
-	l.rowHeight = h
+	l.rowHeight = max(h, 1)
 	l.clampCursor()
 }
 
 // visibleItems is how many items fit in the current height.
 func (l *List[T]) visibleItems() int {
-	rh := l.rowHeight
-	if rh < 1 {
-		rh = 1
-	}
+	rh := max(l.rowHeight, 1)
 	return max(1, l.height/rh)
 }
 
@@ -259,13 +253,7 @@ func (l *List[T]) FilterLine() string {
 // --- helpers ---------------------------------------------------------------
 
 func clamp(v, lo, hi int) int {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
+	return min(max(v, lo), hi)
 }
 
 // matchesSubsequence reports whether all runes of q appear in s in order.

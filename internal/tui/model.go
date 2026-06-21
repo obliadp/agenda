@@ -203,12 +203,7 @@ func clipFrom(s string, offset, n int) string {
 		return ""
 	}
 	lines := strings.Split(s, "\n")
-	if offset < 0 {
-		offset = 0
-	}
-	if offset > len(lines) {
-		offset = len(lines)
-	}
+	offset = clamp(offset, 0, len(lines))
 	lines = lines[offset:]
 	if len(lines) > n {
 		lines = lines[:n]
@@ -217,13 +212,7 @@ func clipFrom(s string, offset, n int) string {
 }
 
 func clamp(v, lo, hi int) int {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
+	return min(max(v, lo), hi)
 }
 
 func (m Model) renderTabs() string {

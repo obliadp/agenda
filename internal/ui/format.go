@@ -11,10 +11,7 @@ func Age(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
-	d := time.Since(t)
-	if d < 0 {
-		d = 0
-	}
+	d := max(time.Since(t), 0)
 	switch {
 	case d < time.Hour:
 		return fmt.Sprintf("%dm", int(d.Minutes()))
