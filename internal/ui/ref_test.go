@@ -39,7 +39,7 @@ func TestPRIconsUnknownIsEmpty(t *testing.T) {
 }
 
 func TestIssueRef(t *testing.T) {
-	r := IssueRef("SRE-1", "Do a thing")
+	r := IssueRef("SRE-1", "Do a thing", "https://linear.app/x/issue/SRE-1")
 	if r.Kind != "linear" || r.ID != "SRE-1" {
 		t.Fatalf("ref identity = %+v", r)
 	}
@@ -48,5 +48,8 @@ func TestIssueRef(t *testing.T) {
 	}
 	if r.Detail != "Do a thing" {
 		t.Errorf("Detail = %q, want the title", r.Detail)
+	}
+	if r.URL != "https://linear.app/x/issue/SRE-1" {
+		t.Errorf("URL = %q, want the issue URL", r.URL)
 	}
 }

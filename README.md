@@ -111,7 +111,8 @@ Views link to each other and `l` follows the link, in every direction:
 
 A picker lists the targets (always, even for a single one, so navigation never
 happens without a prompt), with issue/PR references grouped above a `sessions`
-separator. References that resolve to a loaded item jump in-app;
+separator. `enter` follows the selection; `o` opens it in the browser (where it
+has a URL). References that resolve to a loaded item jump in-app;
 ones that don't (e.g. a merged PR, or a PR by someone else) open in the browser,
 marked with `↗`. References that resolve to nothing — like regex false-positives
 with no URL — are dropped.

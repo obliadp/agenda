@@ -70,14 +70,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		// While the cross-reference picker is open it captures all keys.
 		if m.picker != nil {
-			done, cancelled := m.picker.Update(msg)
-			switch {
-			case cancelled:
+			switch m.picker.Update(msg) {
+			case ui.PickerCancel:
 				m.picker, m.pickerRefs = nil, nil
-			case done:
+			case ui.PickerConfirm:
 				ref := m.pickerRefs[m.picker.Index()]
 				m.picker, m.pickerRefs = nil, nil
 				return m, m.followRef(ref)
+			case ui.PickerOpenURL:
+				// Open the selected ref in the browser, where it has a URL.
+				if ref := m.pickerRefs[m.picker.Index()]; ref.URL != "" {
+					m.picker, m.pickerRefs = nil, nil
+					return m, ui.OpenURL(ref.URL)
+				}
 			}
 			return m, nil
 		}

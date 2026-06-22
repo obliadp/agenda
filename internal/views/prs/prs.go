@@ -354,13 +354,13 @@ func (v *View) Refs() []ui.Ref {
 	sel := v.list.Selected()
 	var refs []ui.Ref
 	for _, id := range sel.linearRefs() {
-		var title string
+		var title, url string
 		if v.store != nil {
 			if iss, ok := v.store.Issue(id); ok {
-				title = iss.Title
+				title, url = iss.Title, iss.URL
 			}
 		}
-		refs = append(refs, ui.IssueRef(id, title))
+		refs = append(refs, ui.IssueRef(id, title, url))
 	}
 	if v.store != nil && sel.URL != "" {
 		for _, s := range v.store.SessionsMentioning(store.Key("pr", sel.URL)) {

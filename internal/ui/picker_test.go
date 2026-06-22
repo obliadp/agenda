@@ -67,12 +67,18 @@ func TestPickerInitialCursorSkipsLeadingSeparator(t *testing.T) {
 	}
 }
 
-func TestPickerConfirmAndCancel(t *testing.T) {
+func TestPickerActions(t *testing.T) {
 	p := NewPicker("x", []PickerItem{{Label: "a"}, {Label: "b"}})
-	if done, cancelled := p.Update(press(tea.KeyEnter)); !done || cancelled {
-		t.Errorf("enter: done=%v cancelled=%v, want true/false", done, cancelled)
+	if act := p.Update(press(tea.KeyEnter)); act != PickerConfirm {
+		t.Errorf("enter -> %v, want PickerConfirm", act)
 	}
-	if done, cancelled := p.Update(press(tea.KeyEscape)); done || !cancelled {
-		t.Errorf("esc: done=%v cancelled=%v, want false/true", done, cancelled)
+	if act := p.Update(press('o')); act != PickerOpenURL {
+		t.Errorf("o -> %v, want PickerOpenURL", act)
+	}
+	if act := p.Update(press(tea.KeyEscape)); act != PickerCancel {
+		t.Errorf("esc -> %v, want PickerCancel", act)
+	}
+	if act := p.Update(press('x')); act != PickerNone {
+		t.Errorf("unbound key -> %v, want PickerNone", act)
 	}
 }

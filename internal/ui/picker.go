@@ -44,12 +44,22 @@ func (p *Picker) nextSelectable(start, dir int) int {
 	return p.cursor
 }
 
-// Update handles navigation keys. done is true when the user confirmed a
-// choice (read it with Index); cancelled is true when they dismissed the modal.
-func (p *Picker) Update(msg tea.Msg) (done, cancelled bool) {
+// PickerAction is what the host model should do after a key is handled.
+type PickerAction int
+
+const (
+	PickerNone    PickerAction = iota // key consumed, nothing to do
+	PickerConfirm                     // follow the selected ref (Index)
+	PickerOpenURL                     // open the selected ref in the browser
+	PickerCancel                      // dismiss the modal
+)
+
+// Update handles navigation and returns the action the host should take. Read
+// the selection with Index.
+func (p *Picker) Update(msg tea.Msg) PickerAction {
 	km, ok := msg.(tea.KeyMsg)
 	if !ok {
-		return false, false
+		return PickerNone
 	}
 	switch km.String() {
 	case "up", "k":
@@ -57,11 +67,13 @@ func (p *Picker) Update(msg tea.Msg) (done, cancelled bool) {
 	case "down", "j":
 		p.cursor = p.nextSelectable(p.cursor+1, 1)
 	case "enter":
-		return true, false
+		return PickerConfirm
+	case "o":
+		return PickerOpenURL
 	case "esc", "ctrl+c", "q":
-		return false, true
+		return PickerCancel
 	}
-	return false, false
+	return PickerNone
 }
 
 // Index is the selected option's index.
@@ -102,7 +114,7 @@ func (p *Picker) View() string {
 		}
 	}
 	b.WriteByte('\n')
-	b.WriteString(dim.Render("↑/↓ select · enter open · esc cancel"))
+	b.WriteString(dim.Render("↑/↓ select · enter open · o browser · esc cancel"))
 
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
