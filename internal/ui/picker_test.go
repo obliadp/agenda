@@ -41,6 +41,32 @@ func TestPickerVimKeys(t *testing.T) {
 	}
 }
 
+func TestPickerSkipsSeparators(t *testing.T) {
+	p := NewPicker("x", []PickerItem{
+		{Label: "a"},
+		{Separator: true, Label: "sessions"},
+		{Label: "b"},
+	})
+	if p.Index() != 0 {
+		t.Fatalf("initial Index = %d, want 0", p.Index())
+	}
+	p.Update(press(tea.KeyDown))
+	if p.Index() != 2 {
+		t.Errorf("down Index = %d, want 2 (separator skipped)", p.Index())
+	}
+	p.Update(press(tea.KeyUp))
+	if p.Index() != 0 {
+		t.Errorf("up Index = %d, want 0 (separator skipped)", p.Index())
+	}
+}
+
+func TestPickerInitialCursorSkipsLeadingSeparator(t *testing.T) {
+	p := NewPicker("x", []PickerItem{{Separator: true, Label: "s"}, {Label: "a"}})
+	if p.Index() != 1 {
+		t.Errorf("initial Index = %d, want 1 (leading separator skipped)", p.Index())
+	}
+}
+
 func TestPickerConfirmAndCancel(t *testing.T) {
 	p := NewPicker("x", []PickerItem{{Label: "a"}, {Label: "b"}})
 	if done, cancelled := p.Update(press(tea.KeyEnter)); !done || cancelled {

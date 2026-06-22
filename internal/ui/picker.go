@@ -7,11 +7,13 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// PickerItem is one choice in a Picker: a label plus an optional dimmed detail
-// line shown beneath it (e.g. a snippet of context).
+// PickerItem is one row in a Picker. A normal item has a Label and an optional
+// dimmed Detail line beneath it. A Separator item is a non-selectable group
+// divider (its Label, if any, is shown in the rule).
 type PickerItem struct {
-	Label  string
-	Detail string
+	Label     string
+	Detail    string
+	Separator bool
 }
 
 // Picker is a small modal list for choosing one option (e.g. which referenced
@@ -24,7 +26,22 @@ type Picker struct {
 }
 
 func NewPicker(title string, items []PickerItem) Picker {
-	return Picker{title: title, items: items}
+	p := Picker{title: title, items: items}
+	if len(items) > 0 && items[0].Separator {
+		p.cursor = p.nextSelectable(0, 1) // never rest on a separator
+	}
+	return p
+}
+
+// nextSelectable returns the next non-separator index from start in direction
+// dir (+1/-1), or the original cursor if there is none.
+func (p *Picker) nextSelectable(start, dir int) int {
+	for i := start; i >= 0 && i < len(p.items); i += dir {
+		if !p.items[i].Separator {
+			return i
+		}
+	}
+	return p.cursor
 }
 
 // Update handles navigation keys. done is true when the user confirmed a
@@ -36,13 +53,9 @@ func (p *Picker) Update(msg tea.Msg) (done, cancelled bool) {
 	}
 	switch km.String() {
 	case "up", "k":
-		if p.cursor > 0 {
-			p.cursor--
-		}
+		p.cursor = p.nextSelectable(p.cursor-1, -1)
 	case "down", "j":
-		if p.cursor < len(p.items)-1 {
-			p.cursor++
-		}
+		p.cursor = p.nextSelectable(p.cursor+1, 1)
 	case "enter":
 		return true, false
 	case "esc", "ctrl+c", "q":
@@ -64,6 +77,16 @@ func (p *Picker) View() string {
 	b.WriteString(bold.Render(p.title))
 	b.WriteString("\n\n")
 	for i, it := range p.items {
+		if it.Separator {
+			rule := "────────"
+			if it.Label != "" {
+				rule = "── " + it.Label + " ──────"
+			}
+			b.WriteString("  ")
+			b.WriteString(dim.Render(rule))
+			b.WriteByte('\n')
+			continue
+		}
 		if i == p.cursor {
 			b.WriteString(accent.Render("▌ "))
 			b.WriteString(bold.Render(it.Label))
