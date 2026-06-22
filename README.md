@@ -86,6 +86,9 @@ linear:
 | Linear | `enter` · `y` · `b` | open · copy URL · copy branch |
 | Reference picker | `enter` · `o` · `esc` | follow · open in browser · cancel |
 
+While the filter (`/`) is open, typing refines the query; arrows, `ctrl+u`/`ctrl+d`,
+and `home`/`end` still move the selection, so you can narrow and navigate at once.
+
 ## Views
 
 - **PRs** — fetched via `gh api graphql`. Shows state/CI/review glyphs, `+/−`
