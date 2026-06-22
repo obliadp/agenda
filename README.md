@@ -100,7 +100,8 @@ Views link to each other and `l` follows the link, in every direction:
   shown with the issue's title on a second line.
 - **Linear issue** → the GitHub PRs attached to it (each shown with its title
   and live state/CI/review icons) and the agent **sessions** that mention it.
-- **Session** → the issues and PRs its conversation mentions.
+- **Session** → the issues and PRs its conversation mentions (rendered like the
+  other views — issue titles and PR status icons/titles from the store).
 - **PR / issue** → the **sessions** that mention them, each with a dimmed line
   of context from the session.
 

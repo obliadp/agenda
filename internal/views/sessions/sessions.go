@@ -317,19 +317,28 @@ func (v *View) publishMentions() {
 	v.store.SetSessionMentions(index)
 }
 
-// Refs implements ui.Referencer: the Linear issues and PRs this session mentions.
+// Refs implements ui.Referencer: the Linear issues and PRs this session
+// mentions, rendered like the other views' references — issue titles and PR
+// status icons/titles are sourced from the shared store.
 func (v *View) Refs() []ui.Ref {
 	var refs []ui.Ref
 	for _, mn := range v.list.Selected().Mentions {
 		switch mn.Kind {
 		case "linear":
-			refs = append(refs, ui.Ref{Kind: "linear", ID: mn.ID, Label: "Linear  " + mn.ID})
-		case "pr":
-			label := "PR  " + mn.ID
-			if repo, num, ok := ui.ParsePRURL(mn.ID); ok {
-				label = fmt.Sprintf("PR  %s#%d", repo, num)
+			var title string
+			if v.store != nil {
+				if iss, ok := v.store.Issue(mn.ID); ok {
+					title = iss.Title
+				}
 			}
-			refs = append(refs, ui.Ref{Kind: "pr", ID: mn.ID, Label: label, URL: mn.ID})
+			refs = append(refs, ui.IssueRef(mn.ID, title))
+		case "pr":
+			repo, num, _ := ui.ParsePRURL(mn.ID)
+			var pr store.PR
+			if v.store != nil {
+				pr, _ = v.store.PR(mn.ID)
+			}
+			refs = append(refs, ui.PRRef(pr, repo, num, pr.Title, mn.ID))
 		}
 	}
 	return refs

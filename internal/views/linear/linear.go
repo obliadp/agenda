@@ -39,8 +39,6 @@ var (
 	blue   = fg("4")
 	grey   = fg("8")
 	cyan   = fg("6")
-	green  = fg("2")
-	purple = fg("5")
 	bold   = lipgloss.NewStyle().Bold(true)
 	faint  = lipgloss.NewStyle().Faint(true)
 )
@@ -474,61 +472,6 @@ func matchID(id string) func(issue) bool {
 func (v *View) HasRef(id string) bool    { return v.list.Any(matchID(id)) }
 func (v *View) SelectRef(id string) bool { return v.list.Select(matchID(id)) }
 
-// prIcons renders state/CI/review/conflict glyphs for a stored PR, matching
-// the PRs view's vocabulary.
-func prIcons(p store.PR) string {
-	var parts []string
-	switch p.State {
-	case store.PRMerged:
-		parts = append(parts, purple.Render(ui.IconMerged))
-	case store.PRClosed:
-		parts = append(parts, red.Render(ui.IconClosed))
-	case store.PRDraft:
-		parts = append(parts, grey.Render(ui.IconDraft))
-	default:
-		parts = append(parts, green.Render(ui.IconOpen))
-	}
-	switch p.CI {
-	case store.CIPassing:
-		parts = append(parts, green.Render(ui.IconCIOK))
-	case store.CIFailing:
-		parts = append(parts, red.Render(ui.IconCIFail))
-	case store.CIPending:
-		parts = append(parts, yellow.Render(ui.IconCIPending))
-	}
-	switch p.Review {
-	case store.ReviewApproved:
-		parts = append(parts, green.Render(ui.IconApproved))
-	case store.ReviewChanges:
-		parts = append(parts, red.Render(ui.IconChanges))
-	case store.ReviewPending:
-		parts = append(parts, yellow.Render(ui.IconReviewReq))
-	}
-	if p.HasConflicts {
-		parts = append(parts, red.Render("⚠"))
-	}
-	return strings.Join(parts, " ")
-}
-
-// prRefLabel builds a PR cross-reference for the picker: status icons and the
-// PR title on the main line, with repo#number as the dimmed detail — mirroring
-// how the PRs view itself presents a PR.
-func prRefLabel(icons, repo string, num int, title, url string) ui.Ref {
-	label := icons
-	if title != "" {
-		label = strings.TrimSpace(icons + "  " + ui.Truncate(title, 60))
-	} else {
-		label = strings.TrimSpace(fmt.Sprintf("%s  %s#%d", icons, repo, num))
-	}
-	return ui.Ref{
-		Kind:   "pr",
-		ID:     url,
-		Label:  label,
-		Detail: fmt.Sprintf("%s#%d", repo, num),
-		URL:    url,
-	}
-}
-
 // Refs implements ui.Referencer: the GitHub PRs attached to the selected issue
 // (with CI/review status icons sourced from the shared store), plus the agent
 // sessions that mention the issue.
@@ -556,7 +499,7 @@ func (v *View) Refs() []ui.Ref {
 			title = a.Title
 		}
 
-		refs = append(refs, prRefLabel(prIcons(pr), repo, num, title, a.URL))
+		refs = append(refs, ui.PRRef(pr, repo, num, title, a.URL))
 	}
 	if v.store != nil {
 		for _, s := range v.store.SessionsMentioning(store.Key("linear", sel.Identifier)) {
