@@ -97,8 +97,8 @@ linear:
 Views link to each other and `l` follows the link, in every direction:
 
 - **PR** → the Linear issue it references (from the title, branch, or body).
-- **Linear issue** → the GitHub PRs attached to it (each shown with live
-  state/CI/review icons) and the agent **sessions** that mention it.
+- **Linear issue** → the GitHub PRs attached to it (each shown with its title
+  and live state/CI/review icons) and the agent **sessions** that mention it.
 - **Session** → the issues and PRs its conversation mentions.
 - **PR / issue** → the **sessions** that mention them, each with a dimmed line
   of context from the session.

@@ -89,11 +89,58 @@ type issue struct {
 		Nodes []label `json:"nodes"`
 	} `json:"labels"`
 	Attachments struct {
-		Nodes []struct {
-			URL        string `json:"url"`
-			SourceType string `json:"sourceType"`
-		} `json:"nodes"`
+		Nodes []attachment `json:"nodes"`
 	} `json:"attachments"`
+}
+
+// attachment is a Linear attachment; for GitHub PRs the metadata carries the
+// PR's status (used as a fallback when the PRs view hasn't loaded the PR).
+type attachment struct {
+	URL        string `json:"url"`
+	SourceType string `json:"sourceType"`
+	Title      string `json:"title"`
+	Metadata   struct {
+		Draft        bool   `json:"draft"`
+		Status       string `json:"status"` // open | inReview | merged | closed
+		HasConflicts bool   `json:"hasConflicts"`
+		Reviews      []struct {
+			State string `json:"state"` // approved | changes_requested | ...
+		} `json:"reviews"`
+	} `json:"metadata"`
+}
+
+// toPR builds the store metadata a GitHub PR attachment implies. CI status
+// isn't in Linear's data, so it stays unknown (no CI glyph).
+func (a attachment) toPR() store.PR {
+	p := store.PR{HasConflicts: a.Metadata.HasConflicts}
+	switch {
+	case a.Metadata.Status == "merged":
+		p.State = store.PRMerged
+	case a.Metadata.Status == "closed":
+		p.State = store.PRClosed
+	case a.Metadata.Draft:
+		p.State = store.PRDraft
+	default:
+		p.State = store.PROpen
+	}
+	changes, approved := false, false
+	for _, r := range a.Metadata.Reviews {
+		switch r.State {
+		case "changes_requested":
+			changes = true
+		case "approved":
+			approved = true
+		}
+	}
+	switch {
+	case changes:
+		p.Review = store.ReviewChanges
+	case approved:
+		p.Review = store.ReviewApproved
+	case a.Metadata.Status == "inReview":
+		p.Review = store.ReviewPending
+	}
+	return p
 }
 
 func (i issue) Filter() string {
@@ -200,7 +247,7 @@ const graphqlQuery = `query {
         project { name }
         assignee { displayName }
         labels(first: 10) { nodes { name color } }
-        attachments(first: 20) { nodes { url sourceType } }
+        attachments(first: 20) { nodes { url sourceType title metadata } }
       }
     }
   }
@@ -444,6 +491,25 @@ func prIcons(p store.PR) string {
 	return strings.Join(parts, " ")
 }
 
+// prRefLabel builds a PR cross-reference for the picker: status icons and the
+// PR title on the main line, with repo#number as the dimmed detail — mirroring
+// how the PRs view itself presents a PR.
+func prRefLabel(icons, repo string, num int, title, url string) ui.Ref {
+	label := icons
+	if title != "" {
+		label = strings.TrimSpace(icons + "  " + ui.Truncate(title, 60))
+	} else {
+		label = strings.TrimSpace(fmt.Sprintf("%s  %s#%d", icons, repo, num))
+	}
+	return ui.Ref{
+		Kind:   "pr",
+		ID:     url,
+		Label:  label,
+		Detail: fmt.Sprintf("%s#%d", repo, num),
+		URL:    url,
+	}
+}
+
 // Refs implements ui.Referencer: the GitHub PRs attached to the selected issue
 // (with CI/review status icons sourced from the shared store), plus the agent
 // sessions that mention the issue.
@@ -457,15 +523,21 @@ func (v *View) Refs() []ui.Ref {
 			continue
 		}
 		seen[a.URL] = true
-		label := fmt.Sprintf("PR  %s#%d", repo, num)
+
+		// Prefer the PRs view's live status (it has CI) and clean title; fall
+		// back to what Linear records in the attachment metadata.
+		pr := a.toPR()
 		if v.store != nil {
-			if pr, ok := v.store.PR(a.URL); ok {
-				if icons := prIcons(pr); icons != "" {
-					label = icons + "  " + label
-				}
+			if sp, ok := v.store.PR(a.URL); ok {
+				pr = sp
 			}
 		}
-		refs = append(refs, ui.Ref{Kind: "pr", ID: a.URL, Label: label, URL: a.URL})
+		title := pr.Title
+		if title == "" {
+			title = a.Title
+		}
+
+		refs = append(refs, prRefLabel(prIcons(pr), repo, num, title, a.URL))
 	}
 	if v.store != nil {
 		for _, s := range v.store.SessionsMentioning(store.Key("linear", sel.Identifier)) {
