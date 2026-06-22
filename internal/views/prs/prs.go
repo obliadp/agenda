@@ -23,6 +23,7 @@ import (
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/obliadp/agenda/internal/cache"
 	"github.com/obliadp/agenda/internal/store"
 	"github.com/obliadp/agenda/internal/ui"
 )
@@ -254,8 +255,17 @@ func New(filter string, st *store.Store) *View {
 		},
 	}
 	v.list.SetRowHeight(2) // two-line rows: metadata + title
+
+	// Paint last run's PRs immediately; the live fetch refreshes them.
+	if cached, ok := cache.Load[[]pr](cacheName); ok && len(cached) > 0 {
+		v.list.SetItems(cached)
+		v.publish(cached)
+		v.loading = false
+	}
 	return v
 }
+
+const cacheName = "prs"
 
 func (v *View) Title() string { return "PRs" }
 
@@ -313,6 +323,7 @@ func (v *View) Update(msg tea.Msg) tea.Cmd {
 		v.err = nil
 		v.list.SetItems([]pr(msg))
 		v.publish([]pr(msg))
+		_ = cache.Save(cacheName, []pr(msg))
 		return nil
 	case errMsg:
 		v.loading = false

@@ -12,6 +12,10 @@ tab between:
 Each is a distinct *view*; switch with `tab` / `shift+tab`. Every view shares
 the same two-line row layout, fuzzy filter, and scrollable markdown preview.
 
+The network-backed views (PRs, Linear) cache their last results under
+`$XDG_CACHE_HOME/agenda`, so they paint instantly on launch and refresh in the
+background — you see your data immediately, not a loading spinner.
+
 Built with [Bubble Tea v2](https://github.com/charmbracelet/bubbletea),
 [Lip Gloss](https://github.com/charmbracelet/lipgloss), and
 [Glamour](https://github.com/charmbracelet/glamour).

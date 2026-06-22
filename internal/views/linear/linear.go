@@ -22,6 +22,7 @@ import (
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/obliadp/agenda/internal/cache"
 	"github.com/obliadp/agenda/internal/config"
 	"github.com/obliadp/agenda/internal/store"
 	"github.com/obliadp/agenda/internal/ui"
@@ -220,8 +221,19 @@ func New(token string, st *store.Store) *View {
 		},
 	}
 	v.list.SetRowHeight(2) // two-line rows: state/identifier + title
+
+	// Paint last run's issues immediately; the live fetch refreshes them.
+	if token != "" {
+		if cached, ok := cache.Load[[]issue](cacheName); ok && len(cached) > 0 {
+			v.list.SetItems(cached)
+			v.publish(cached)
+			v.loading = false
+		}
+	}
 	return v
 }
+
+const cacheName = "linear"
 
 func (v *View) Title() string { return "Linear" }
 
@@ -323,6 +335,7 @@ func (v *View) Update(msg tea.Msg) tea.Cmd {
 		v.err = nil
 		v.list.SetItems([]issue(msg))
 		v.publish([]issue(msg))
+		_ = cache.Save(cacheName, []issue(msg))
 		return nil
 	case errMsg:
 		v.loading = false
