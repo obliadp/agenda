@@ -3,6 +3,8 @@ package ui
 import (
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 // strItem is a trivial Item whose render and filter text are the string itself.
@@ -72,6 +74,41 @@ func TestListFilterSubsequence(t *testing.T) {
 	}
 	if l.Total() != 3 {
 		t.Errorf("Total() = %d, want 3 (unfiltered count)", l.Total())
+	}
+}
+
+func TestFilterAcceptsSpace(t *testing.T) {
+	l := newTestList("alpha beta", "gamma", "alpha gamma")
+	l.SetSize(40, 10)
+	l.Update(tea.KeyPressMsg{Code: '/', Text: "/"}) // begin filtering
+	if !l.Filtering() {
+		t.Fatal("expected filtering after '/'")
+	}
+	for _, r := range "alpha beta" { // includes a space
+		l.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
+	}
+	if l.Query() != "alpha beta" {
+		t.Errorf("query = %q, want %q (space must be accepted)", l.Query(), "alpha beta")
+	}
+	if l.Len() != 1 || l.Selected() != "alpha beta" {
+		t.Errorf("filtered = %d / %q, want 1 / alpha beta", l.Len(), l.Selected())
+	}
+}
+
+func TestNavigateWhileFiltering(t *testing.T) {
+	l := newTestList("apple", "apricot", "avocado")
+	l.SetSize(40, 10)
+	l.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
+	l.Update(tea.KeyPressMsg{Code: 'a', Text: "a"}) // matches all three
+	if l.Selected() != "apple" {
+		t.Fatalf("Selected = %q, want apple", l.Selected())
+	}
+	l.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // arrow navigates, still filtering
+	if !l.Filtering() {
+		t.Error("arrow should not exit filtering")
+	}
+	if l.Selected() != "apricot" {
+		t.Errorf("after down Selected = %q, want apricot", l.Selected())
 	}
 }
 

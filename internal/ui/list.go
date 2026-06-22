@@ -159,29 +159,48 @@ func (l *List[T]) Update(msg tea.Msg) (consumed bool, cmd tea.Cmd) {
 	}
 
 	if l.filtering {
-		switch {
-		case key.Matches(km, l.keys.Clear):
+		switch km.String() {
+		case "esc":
 			l.filtering = false
 			l.query = ""
 			l.applyFilter()
 			return true, nil
-		case km.String() == "enter":
+		case "enter":
 			l.filtering = false // keep the query, just stop editing
 			return true, nil
-		case km.String() == "backspace":
+		case "backspace":
 			if l.query != "" {
 				l.query = l.query[:len(l.query)-1]
 				l.applyFilter()
 			}
 			return true, nil
+		// Keys that can't be confused with typed text navigate while filtering,
+		// so you can refine the query and move the selection at the same time.
+		case "up":
+			l.move(-1)
+		case "down":
+			l.move(1)
+		case "ctrl+u":
+			l.move(-l.visibleItems() / 2)
+		case "ctrl+d":
+			l.move(l.visibleItems() / 2)
+		case "home":
+			l.cursor = 0
+		case "end":
+			l.cursor = len(l.filtered) - 1
 		default:
-			if s := km.String(); len(s) == 1 {
-				l.query += s
-				l.applyFilter()
-				return true, nil
+			// Append the key's text — a letter, digit, space, etc. Non-text keys
+			// (arrows, …) have empty Text; control chars like Tab are ignored.
+			if kp, ok := msg.(tea.KeyPressMsg); ok && kp.Text != "" {
+				if r := []rune(kp.Text)[0]; r >= 0x20 && r != 0x7f {
+					l.query += kp.Text
+					l.applyFilter()
+				}
 			}
+			return true, nil
 		}
-		return true, nil // swallow other keys while filtering
+		l.clampCursor()
+		return true, nil
 	}
 
 	switch {
