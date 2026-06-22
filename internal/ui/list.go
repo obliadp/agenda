@@ -275,7 +275,7 @@ func (l *List[T]) View() string {
 		lines = append(lines, "")
 	}
 	lines = lines[:l.height]
-	bar := scrollbar(l.height, len(l.filtered), win, l.offset)
+	bar := Scrollbar(l.height, len(l.filtered), win, l.offset)
 	for i := range lines {
 		pad := max(0, contentW-lipgloss.Width(lines[i]))
 		lines[i] += strings.Repeat(" ", pad) + " " + bar[i]
@@ -283,12 +283,13 @@ func (l *List[T]) View() string {
 	return strings.Join(lines, "\n")
 }
 
-// scrollbar returns height cells for a vertical scrollbar: a thumb sized to the
-// visible fraction and positioned by offset, over a faint track. When all items
-// fit (no overflow) it returns blanks, so the gutter stays reserved but empty.
-func scrollbar(height, total, visible, offset int) []string {
+// Scrollbar returns height cells for a slim vertical scrollbar: a thumb sized
+// to the visible fraction and positioned by offset (a heavy line), over a faint
+// light-line track. When everything fits (no overflow) it returns blanks, so a
+// reserved gutter stays empty. Shared by the list rows and the preview pane.
+func Scrollbar(height, total, visible, offset int) []string {
 	track := lipgloss.NewStyle().Faint(true).Render("│")
-	thumb := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render("█")
+	thumb := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render("┃")
 
 	out := make([]string, height)
 	if total <= visible { // everything visible: no bar

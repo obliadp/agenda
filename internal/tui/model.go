@@ -251,16 +251,25 @@ func (m Model) pickerItems(refs []ui.Ref) ([]ui.PickerItem, []ui.Ref) {
 	return items, aligned
 }
 
+// dims computes the pane sizes. previewContentW leaves room for the preview's
+// border + padding (3) and its scrollbar gutter (2).
+func (m Model) dims() (listW, previewContentW, contentH int) {
+	contentH = max(1, m.height-tabBarHeight-footerHeight)
+	previewPane := m.width * previewRatio / 100
+	listW = m.width - previewPane
+	previewContentW = max(1, previewPane-3-scrollGutter)
+	return
+}
+
+// scrollGutter is the width reserved for a scrollbar (the bar + a gap).
+const scrollGutter = 2
+
 // layout recomputes per-view sizes after a resize.
 func (m *Model) layout() {
 	if !m.ready {
 		return
 	}
-	contentH := max(1, m.height-tabBarHeight-footerHeight)
-	previewPane := m.width * previewRatio / 100
-	listW := m.width - previewPane
-	// Preview style overhead: 1 border column + 2 left padding.
-	previewContentW := max(1, previewPane-3)
+	listW, previewContentW, contentH := m.dims()
 	for _, v := range m.views {
 		v.SetSize(listW, previewContentW, contentH)
 	}
@@ -274,16 +283,16 @@ func (m Model) View() tea.View {
 		return v
 	}
 
-	contentH := max(1, m.height-tabBarHeight-footerHeight)
+	_, previewContentW, contentH := m.dims()
 	cur := m.views[m.current]
 
 	// Clip each pane to the content height so tall content can't overflow and
-	// push the footer off-screen. The preview is clipped from the scroll
-	// offset so it can be scrolled; the list manages its own window.
+	// push the footer off-screen. The list manages its own window; the preview
+	// is clipped from the scroll offset and gets a scrollbar when it overflows.
 	body := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		clipFrom(cur.ListView(), 0, contentH),
-		m.theme.preview.Height(contentH).Render(clipFrom(cur.PreviewView(), m.previewScroll, contentH)),
+		m.theme.preview.Height(contentH).Render(m.previewPane(cur, previewContentW, contentH)),
 	)
 
 	content := lipgloss.JoinVertical(
@@ -306,6 +315,25 @@ func (m Model) View() tea.View {
 
 	v.Content = content
 	return v
+}
+
+// previewPane renders the preview content clipped to height lines from the
+// scroll offset, with a scrollbar gutter on the right (a bar only when the full
+// content overflows the viewport).
+func (m Model) previewPane(cur View, contentW, height int) string {
+	full := cur.PreviewView()
+	total := strings.Count(full, "\n") + 1
+	lines := strings.Split(clipFrom(full, m.previewScroll, height), "\n")
+	for len(lines) < height {
+		lines = append(lines, "")
+	}
+	lines = lines[:height]
+	bar := ui.Scrollbar(height, total, height, m.previewScroll)
+	for i := range lines {
+		pad := max(0, contentW-lipgloss.Width(lines[i]))
+		lines[i] += strings.Repeat(" ", pad) + " " + bar[i]
+	}
+	return strings.Join(lines, "\n")
 }
 
 // clipFrom returns at most n lines of s starting at line offset, so a pane

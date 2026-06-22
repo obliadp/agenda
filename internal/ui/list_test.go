@@ -106,21 +106,21 @@ func TestVisibleItemsWithRowHeight(t *testing.T) {
 }
 
 func TestScrollbar(t *testing.T) {
-	hasThumb := func(s string) bool { return strings.Contains(s, "█") }
+	hasThumb := func(s string) bool { return strings.Contains(s, "┃") }
 
 	// Everything fits: no bar (all blank cells).
-	for _, c := range scrollbar(5, 3, 5, 0) {
+	for _, c := range Scrollbar(5, 3, 5, 0) {
 		if strings.TrimSpace(c) != "" {
 			t.Fatalf("no-overflow cell = %q, want blank", c)
 		}
 	}
 	// At the top, the thumb is at the top and not the bottom.
-	top := scrollbar(10, 100, 10, 0)
+	top := Scrollbar(10, 100, 10, 0)
 	if !hasThumb(top[0]) || hasThumb(top[9]) {
 		t.Errorf("offset 0: thumb should be at the top, not the bottom")
 	}
 	// At the bottom (max offset = total-visible), the thumb is at the bottom.
-	bot := scrollbar(10, 100, 10, 90)
+	bot := Scrollbar(10, 100, 10, 90)
 	if !hasThumb(bot[9]) || hasThumb(bot[0]) {
 		t.Errorf("max offset: thumb should be at the bottom, not the top")
 	}
