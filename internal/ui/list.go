@@ -12,11 +12,19 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
+// Field is one named, scopable piece of an Item's searchable text.
+type Field struct {
+	Name string
+	Text string
+}
+
 // Item is anything a List can hold. Render returns the row text for the given
-// width and selection state; Filter returns the text matched against the
-// filter query.
+// width, selection state, and active highlighter. Fields returns the named
+// fields the scoped filter can target; Filter returns all field text joined,
+// for the quick all-fields filter.
 type Item interface {
-	Render(width int, selected bool) string
+	Render(width int, selected bool, hl Highlighter) string
+	Fields() []Field
 	Filter() string
 }
 
@@ -33,6 +41,9 @@ type List[T Item] struct {
 
 	filtering bool
 	query     string
+
+	enabled       map[string]bool // field name -> on; nil/empty = all on
+	caseSensitive bool
 
 	keys listKeys
 }
@@ -111,6 +122,67 @@ func (l *List[T]) Filtering() bool { return l.filtering }
 
 // Query is the active filter string.
 func (l *List[T]) Query() string { return l.query }
+
+// SetQuery sets the filter query and re-filters. Empty query clears the match.
+func (l *List[T]) SetQuery(q string) { l.query = q; l.applyFilter() }
+
+// SetEnabledFields scopes matching to the named fields. nil/empty enables all.
+func (l *List[T]) SetEnabledFields(names []string) {
+	if len(names) == 0 {
+		l.enabled = nil
+	} else {
+		l.enabled = make(map[string]bool, len(names))
+		for _, n := range names {
+			l.enabled[n] = true
+		}
+	}
+	l.applyFilter()
+}
+
+// SetCaseSensitive toggles case-sensitive matching and re-filters.
+func (l *List[T]) SetCaseSensitive(b bool) { l.caseSensitive = b; l.applyFilter() }
+
+// CaseSensitive reports the current case-sensitivity setting.
+func (l *List[T]) CaseSensitive() bool { return l.caseSensitive }
+
+// FieldNames returns every field name the items expose, in declaration order
+// (read from the first item). Empty if the list is empty.
+func (l *List[T]) FieldNames() []string {
+	if len(l.items) == 0 {
+		return nil
+	}
+	fields := l.items[0].Fields()
+	names := make([]string, len(fields))
+	for i, f := range fields {
+		names[i] = f.Name
+	}
+	return names
+}
+
+// EnabledFields returns the field names currently enabled, in declaration
+// order. Empty slice means all fields are enabled.
+func (l *List[T]) EnabledFields() []string {
+	if len(l.enabled) == 0 {
+		return nil
+	}
+	var out []string
+	for _, n := range l.FieldNames() {
+		if l.enabled[n] {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// fieldEnabled reports whether a field participates in matching.
+func (l *List[T]) fieldEnabled(name string) bool {
+	return len(l.enabled) == 0 || l.enabled[name]
+}
+
+// highlighter is the active Highlighter derived from the filter state.
+func (l *List[T]) highlighter() Highlighter {
+	return Highlighter{Query: strings.TrimSpace(l.query), CaseSensitive: l.caseSensitive}
+}
 
 // Len is the number of items after filtering.
 func (l *List[T]) Len() int { return len(l.filtered) }
@@ -251,13 +323,34 @@ func (l *List[T]) clampCursor() {
 
 func (l *List[T]) applyFilter() {
 	l.filtered = l.filtered[:0]
-	q := strings.ToLower(strings.TrimSpace(l.query))
+	q := strings.TrimSpace(l.query)
+	if !l.caseSensitive {
+		q = strings.ToLower(q)
+	}
 	for i := range l.items {
-		if q == "" || matchesSubsequence(strings.ToLower(l.items[i].Filter()), q) {
+		if q == "" || l.itemMatches(l.items[i], q) {
 			l.filtered = append(l.filtered, i)
 		}
 	}
 	l.clampCursor()
+}
+
+// itemMatches reports whether q (already case-folded if needed) is a
+// subsequence of any enabled field's text.
+func (l *List[T]) itemMatches(it T, q string) bool {
+	for _, f := range it.Fields() {
+		if !l.fieldEnabled(f.Name) {
+			continue
+		}
+		text := f.Text
+		if !l.caseSensitive {
+			text = strings.ToLower(text)
+		}
+		if matchesSubsequence(text, q) {
+			return true
+		}
+	}
+	return false
 }
 
 func (l *List[T]) View() string {
@@ -282,7 +375,7 @@ func (l *List[T]) View() string {
 
 	var lines []string
 	for i := l.offset; i < end; i++ {
-		block := l.items[l.filtered[i]].Render(contentW, i == l.cursor)
+		block := l.items[l.filtered[i]].Render(contentW, i == l.cursor, l.highlighter())
 		lines = append(lines, strings.Split(block, "\n")...)
 	}
 	if !gutter {

@@ -7,11 +7,21 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// strItem is a trivial Item whose render and filter text are the string itself.
+// strItem is a trivial Item with a single "text" field equal to the string.
 type strItem string
 
-func (s strItem) Render(width int, selected bool) string { return string(s) }
-func (s strItem) Filter() string                         { return string(s) }
+func (s strItem) Render(width int, selected bool, hl Highlighter) string { return string(s) }
+func (s strItem) Fields() []Field { return []Field{{Name: "text", Text: string(s)}} }
+func (s strItem) Filter() string  { return string(s) }
+
+// fieldItem is a multi-field Item for scoped-filter tests.
+type fieldItem struct{ repo, title string }
+
+func (f fieldItem) Render(width int, selected bool, hl Highlighter) string { return f.repo + " " + f.title }
+func (f fieldItem) Fields() []Field {
+	return []Field{{Name: "repo", Text: f.repo}, {Name: "title", Text: f.title}}
+}
+func (f fieldItem) Filter() string { return f.repo + " " + f.title }
 
 func newTestList(items ...string) List[strItem] {
 	l := NewList[strItem]()
@@ -176,5 +186,66 @@ func TestClampCursorWindow(t *testing.T) {
 	l.clampCursor()
 	if l.offset != 1 {
 		t.Errorf("offset = %d, want 1 (cursor scrolled above window)", l.offset)
+	}
+}
+
+func TestListScopedFieldMatching(t *testing.T) {
+	l := NewList[fieldItem]()
+	l.SetItems([]fieldItem{
+		{repo: "agenda", title: "add oauth"},
+		{repo: "oauth-lib", title: "bump deps"},
+	})
+
+	// All fields on: "oauth" matches both (row 1 via title, row 2 via repo).
+	l.SetQuery("oauth")
+	if l.Len() != 2 {
+		t.Fatalf("all-fields: Len=%d, want 2", l.Len())
+	}
+
+	// Scope to repo only: "oauth" matches only the repo "oauth-lib".
+	l.SetEnabledFields([]string{"repo"})
+	if l.Len() != 1 {
+		t.Fatalf("repo-only: Len=%d, want 1", l.Len())
+	}
+	if got := l.Selected(); got.repo != "oauth-lib" {
+		t.Errorf("repo-only Selected repo=%q, want oauth-lib", got.repo)
+	}
+
+	// Scope to title only: "oauth" matches only "add oauth".
+	l.SetEnabledFields([]string{"title"})
+	if l.Len() != 1 || l.Selected().title != "add oauth" {
+		t.Errorf("title-only Len=%d Selected.title=%q, want 1/add oauth", l.Len(), l.Selected().title)
+	}
+
+	// Empty enabled set means all-on again.
+	l.SetEnabledFields(nil)
+	if l.Len() != 2 {
+		t.Errorf("nil-enabled: Len=%d, want 2 (all on)", l.Len())
+	}
+}
+
+func TestListCaseSensitivity(t *testing.T) {
+	l := NewList[fieldItem]()
+	l.SetItems([]fieldItem{{repo: "Agenda", title: "Foo"}})
+
+	l.SetQuery("agenda")
+	if l.Len() != 1 {
+		t.Fatalf("case-insensitive: Len=%d, want 1", l.Len())
+	}
+	l.SetCaseSensitive(true)
+	if l.Len() != 0 {
+		t.Errorf("case-sensitive 'agenda' vs 'Agenda': Len=%d, want 0", l.Len())
+	}
+	if !l.CaseSensitive() {
+		t.Errorf("CaseSensitive() = false, want true")
+	}
+}
+
+func TestListFieldNames(t *testing.T) {
+	l := NewList[fieldItem]()
+	l.SetItems([]fieldItem{{repo: "a", title: "b"}})
+	got := l.FieldNames()
+	if len(got) != 2 || got[0] != "repo" || got[1] != "title" {
+		t.Errorf("FieldNames() = %v, want [repo title]", got)
 	}
 }

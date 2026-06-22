@@ -21,7 +21,7 @@ import (
 // used for width measurement and safe truncation (so we never cut through an
 // ANSI escape). glyphs and right may contain styling; their display width is
 // measured with lipgloss.Width.
-func TwoLineRow(width int, selected bool, glyphs, metaPlain, metaStyled, right, title string) string {
+func TwoLineRow(width int, selected bool, glyphs, metaPlain, metaStyled, right, title string, hl Highlighter) string {
 	bar := "  "
 	if selected {
 		bar = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Render("▌") + " "
@@ -38,7 +38,8 @@ func TwoLineRow(width int, selected bool, glyphs, metaPlain, metaStyled, right, 
 	gap := max(1, width-indent-lipgloss.Width(meta)-lipgloss.Width(right))
 	line1 := prefix + meta + strings.Repeat(" ", gap) + right
 
-	t := Truncate(title, max(1, width-indent))
+	plainTitle := Truncate(title, max(1, width-indent))
+	t := hl.Highlight(plainTitle)
 	if selected {
 		t = lipgloss.NewStyle().Bold(true).Render(t)
 	} else {
