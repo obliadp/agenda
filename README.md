@@ -96,7 +96,8 @@ linear:
 
 Views link to each other and `l` follows the link, in every direction:
 
-- **PR** → the Linear issue it references (from the title, branch, or body).
+- **PR** → the Linear issue it references (from the title, branch, or body),
+  shown with the issue's title on a second line.
 - **Linear issue** → the GitHub PRs attached to it (each shown with its title
   and live state/CI/review icons) and the agent **sessions** that mention it.
 - **Session** → the issues and PRs its conversation mentions.
@@ -104,7 +105,8 @@ Views link to each other and `l` follows the link, in every direction:
   of context from the session.
 
 A picker lists the targets (always, even for a single one, so navigation never
-happens without a prompt). References that resolve to a loaded item jump in-app;
+happens without a prompt), with issue/PR references grouped above a `sessions`
+separator. References that resolve to a loaded item jump in-app;
 ones that don't (e.g. a merged PR, or a PR by someone else) open in the browser,
 marked with `↗`. References that resolve to nothing — like regex false-positives
 with no URL — are dropped.

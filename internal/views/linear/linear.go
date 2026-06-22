@@ -227,6 +227,24 @@ func New(token string, st *store.Store) *View {
 
 func (v *View) Title() string { return "Linear" }
 
+// publish pushes the loaded issues into the shared store so other views (PRs,
+// sessions) can show an issue's title when they reference it by identifier.
+func (v *View) publish(issues []issue) {
+	if v.store == nil {
+		return
+	}
+	recs := make([]store.Issue, 0, len(issues))
+	for _, i := range issues {
+		recs = append(recs, store.Issue{
+			Identifier: i.Identifier,
+			Title:      i.Title,
+			State:      i.State.Name,
+			URL:        i.URL,
+		})
+	}
+	v.store.PutIssues(recs)
+}
+
 func (v *View) Init() tea.Cmd {
 	if v.token == "" {
 		return nil
@@ -306,6 +324,7 @@ func (v *View) Update(msg tea.Msg) tea.Cmd {
 		v.loading = false
 		v.err = nil
 		v.list.SetItems([]issue(msg))
+		v.publish([]issue(msg))
 		return nil
 	case errMsg:
 		v.loading = false

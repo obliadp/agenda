@@ -118,8 +118,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Follow a cross-reference: always confirm via the picker (even for
 			// a single target) so navigation never happens without a prompt.
 			if refs := m.currentRefs(); len(refs) > 0 {
-				p := ui.NewPicker("Follow reference", m.pickerItems(refs))
-				m.picker, m.pickerRefs = &p, refs
+				items, aligned := m.pickerItems(refs)
+				p := ui.NewPicker("Follow reference", items)
+				m.picker, m.pickerRefs = &p, aligned
 				return m, nil
 			}
 			// No references: fall through to the view.
@@ -222,19 +223,32 @@ func (m *Model) followRef(ref ui.Ref) tea.Cmd {
 	return ui.OpenURL(ref.URL) // unresolved → browser (no-op if URL is "")
 }
 
-// pickerItems builds the picker entries, annotating browser-bound refs with a
-// ↗ (they open externally rather than jumping in-app) and carrying each ref's
-// context snippet as the dimmed detail line.
-func (m Model) pickerItems(refs []ui.Ref) []ui.PickerItem {
-	items := make([]ui.PickerItem, len(refs))
-	for i, r := range refs {
+// pickerItems builds the picker entries from refs and a parallel ref slice
+// aligned to them (a zero Ref sits at any separator row, which is never
+// selectable). Browser-bound refs get a ↗; a "sessions" separator divides the
+// issue/PR refs from the agent-session refs. Each ref's context snippet becomes
+// the dimmed detail line.
+func (m Model) pickerItems(refs []ui.Ref) ([]ui.PickerItem, []ui.Ref) {
+	var items []ui.PickerItem
+	var aligned []ui.Ref
+	hasPrimary, sepDone := false, false
+	for _, r := range refs {
+		if r.Kind == "session" && hasPrimary && !sepDone {
+			items = append(items, ui.PickerItem{Separator: true, Label: "sessions"})
+			aligned = append(aligned, ui.Ref{})
+			sepDone = true
+		}
+		if r.Kind != "session" {
+			hasPrimary = true
+		}
 		label := r.Label
 		if !m.resolves(r) {
 			label += "  ↗"
 		}
-		items[i] = ui.PickerItem{Label: label, Detail: r.Detail}
+		items = append(items, ui.PickerItem{Label: label, Detail: r.Detail})
+		aligned = append(aligned, r)
 	}
-	return items
+	return items, aligned
 }
 
 // layout recomputes per-view sizes after a resize.

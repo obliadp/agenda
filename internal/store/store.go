@@ -63,6 +63,16 @@ type PR struct {
 	UpdatedAt    time.Time
 }
 
+// --- linear issues ----------------------------------------------------------
+
+// Issue is the cross-view metadata for a Linear issue, keyed by identifier.
+type Issue struct {
+	Identifier string
+	Title      string
+	State      string
+	URL        string
+}
+
 // --- session mentions -------------------------------------------------------
 
 // SessionRef identifies an agent session that mentions an entity, with a short
@@ -89,12 +99,14 @@ func Key(kind, id string) string {
 type Store struct {
 	mu              sync.RWMutex
 	prs             map[string]PR
+	issues          map[string]Issue
 	sessionMentions map[string][]SessionRef
 }
 
 func New() *Store {
 	return &Store{
 		prs:             map[string]PR{},
+		issues:          map[string]Issue{},
 		sessionMentions: map[string][]SessionRef{},
 	}
 }
@@ -115,6 +127,23 @@ func (s *Store) PR(url string) (PR, bool) {
 	defer s.mu.RUnlock()
 	p, ok := s.prs[url]
 	return p, ok
+}
+
+// PutIssues upserts Linear issue records, keyed by identifier (upper-cased).
+func (s *Store) PutIssues(issues []Issue) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, i := range issues {
+		s.issues[strings.ToUpper(i.Identifier)] = i
+	}
+}
+
+// Issue returns the stored metadata for an issue identifier (case-insensitive).
+func (s *Store) Issue(id string) (Issue, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	i, ok := s.issues[strings.ToUpper(id)]
+	return i, ok
 }
 
 // SetSessionMentions replaces the whole session-mention index. The sessions
