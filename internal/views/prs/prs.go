@@ -120,16 +120,22 @@ func (p pr) Filter() string {
 // tokens like "v2-foo" don't match.
 var linearRefRe = regexp.MustCompile(`(?i)\b([a-z]{2,}-\d+)\b`)
 
-// linearRef returns the Linear identifier this PR references (uppercased), or
-// "" if none is found. It checks the title, branch, then body — the places a
-// Linear issue is conventionally named.
-func (p pr) linearRef() string {
+// linearRefs returns the Linear identifiers this PR references (uppercased,
+// de-duplicated, in order of appearance). It scans the title, branch, then
+// body — the places a Linear issue is conventionally named.
+func (p pr) linearRefs() []string {
+	seen := map[string]bool{}
+	var out []string
 	for _, s := range []string{p.Title, p.HeadRefName, p.Body} {
-		if m := linearRefRe.FindStringSubmatch(s); m != nil {
-			return strings.ToUpper(m[1])
+		for _, m := range linearRefRe.FindAllStringSubmatch(s, -1) {
+			id := strings.ToUpper(m[1])
+			if !seen[id] {
+				seen[id] = true
+				out = append(out, id)
+			}
 		}
 	}
-	return ""
+	return out
 }
 
 // --- icon rendering ---------------------------------------------------------
@@ -244,10 +250,9 @@ type View struct {
 }
 
 type viewKeys struct {
-	Open   key.Binding
-	Copy   key.Binding
-	Diff   key.Binding
-	Linear key.Binding
+	Open key.Binding
+	Copy key.Binding
+	Diff key.Binding
 }
 
 func New(filter string) *View {
@@ -256,10 +261,9 @@ func New(filter string) *View {
 		list:    ui.NewList[pr](),
 		loading: true,
 		keys: viewKeys{
-			Open:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "open")),
-			Copy:   key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy url")),
-			Diff:   key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "diff")),
-			Linear: key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "linear issue")),
+			Open: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "open")),
+			Copy: key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy url")),
+			Diff: key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "diff")),
 		},
 	}
 	v.list.SetRowHeight(2) // two-line rows: metadata + title
@@ -340,13 +344,18 @@ func (v *View) Update(msg tea.Msg) tea.Cmd {
 			return v.copySelected()
 		case key.Matches(msg, v.keys.Diff):
 			return v.diffSelected()
-		case key.Matches(msg, v.keys.Linear):
-			if id := v.list.Selected().linearRef(); id != "" {
-				return func() tea.Msg { return ui.GoToLinearMsg{Identifier: id} }
-			}
 		}
 	}
 	return nil
+}
+
+// Refs implements ui.Referencer: the Linear issues this PR points at.
+func (v *View) Refs() []ui.Ref {
+	var refs []ui.Ref
+	for _, id := range v.list.Selected().linearRefs() {
+		refs = append(refs, ui.Ref{Kind: "linear", ID: id, Label: "Linear  " + id})
+	}
+	return refs
 }
 
 func (v *View) openSelected() tea.Cmd {
@@ -477,12 +486,7 @@ func (v *View) renderedBody(p pr) string {
 }
 
 func (v *View) Bindings() []key.Binding {
-	b := []key.Binding{v.keys.Open, v.keys.Diff, v.keys.Copy}
-	// Only advertise the jump when the selected PR actually references an issue.
-	if v.list.Selected().linearRef() != "" {
-		b = append(b, v.keys.Linear)
-	}
-	return b
+	return []key.Binding{v.keys.Open, v.keys.Diff, v.keys.Copy}
 }
 
 func (v *View) Status() string {

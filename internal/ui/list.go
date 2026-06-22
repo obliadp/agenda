@@ -118,6 +118,16 @@ func (l *List[T]) Len() int { return len(l.filtered) }
 // Total is the number of items before filtering.
 func (l *List[T]) Total() int { return len(l.items) }
 
+// Any reports whether any visible item matches pred, without moving the cursor.
+func (l *List[T]) Any(pred func(T) bool) bool {
+	for _, idx := range l.filtered {
+		if pred(l.items[idx]) {
+			return true
+		}
+	}
+	return false
+}
+
 // Select moves the cursor to the first visible item matching pred, returning
 // whether one was found.
 func (l *List[T]) Select(pred func(T) bool) bool {

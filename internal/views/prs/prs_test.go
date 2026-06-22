@@ -1,53 +1,56 @@
 package prs
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
-func TestLinearRef(t *testing.T) {
+func TestLinearRefs(t *testing.T) {
 	cases := []struct {
 		name string
 		pr   pr
-		want string
+		want []string
 	}{
 		{
 			name: "uppercase in title parens",
 			pr:   pr{Title: "docs: plan for shard migration (SRE-4419)"},
-			want: "SRE-4419",
+			want: []string{"SRE-4419"},
 		},
 		{
 			name: "lowercase in title prefix",
 			pr:   pr{Title: "ci(sre-4228): migrate to orb"},
-			want: "SRE-4228",
+			want: []string{"SRE-4228"},
 		},
 		{
 			name: "from branch when title has none",
 			pr:   pr{Title: "feat: add gateway routes", HeadRefName: "orjan/sre-3717-add-gateway"},
-			want: "SRE-3717",
+			want: []string{"SRE-3717"},
 		},
 		{
-			name: "title wins over branch",
-			pr:   pr{Title: "ENG-1 do thing", HeadRefName: "user/sre-2-other"},
-			want: "ENG-1",
+			name: "multiple refs in order, de-duplicated",
+			pr:   pr{Title: "ENG-1 and ENG-2", Body: "also ENG-1 again and OPS-9"},
+			want: []string{"ENG-1", "ENG-2", "OPS-9"},
 		},
 		{
-			name: "from body as last resort",
-			pr:   pr{Title: "fix flaky test", Body: "Closes OPS-77 after the rollout."},
-			want: "OPS-77",
+			name: "title before branch before body",
+			pr:   pr{Title: "do ENG-1", HeadRefName: "u/sre-2-x", Body: "ref OPS-3"},
+			want: []string{"ENG-1", "SRE-2", "OPS-3"},
 		},
 		{
 			name: "no reference",
 			pr:   pr{Title: "fix the bug", HeadRefName: "fix/the-bug"},
-			want: "",
+			want: nil,
 		},
 		{
 			name: "version token is not an issue ref",
 			pr:   pr{Title: "bump to v2", HeadRefName: "chore/v2-bump"},
-			want: "",
+			want: nil,
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := c.pr.linearRef(); got != c.want {
-				t.Errorf("linearRef() = %q, want %q", got, c.want)
+			if got := c.pr.linearRefs(); !slices.Equal(got, c.want) {
+				t.Errorf("linearRefs() = %v, want %v", got, c.want)
 			}
 		})
 	}

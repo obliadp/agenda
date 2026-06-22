@@ -11,12 +11,6 @@ import (
 	"github.com/obliadp/agenda/internal/ui"
 )
 
-// issueSelector is implemented by views that can jump to a referenced issue
-// (the Linear view). The root model discovers it by capability, not by name.
-type issueSelector interface {
-	SelectIssue(id string) bool
-}
-
 const (
 	tabBarHeight = 2 // tab labels + bottom border
 	footerHeight = 1
@@ -40,6 +34,10 @@ type Model struct {
 	// preview scrolling, owned centrally so it works the same in every view.
 	previewScroll int
 	previewKey    string
+
+	// cross-reference picker (nil unless the modal is open).
+	picker     *ui.Picker
+	pickerRefs []ui.Ref
 }
 
 // New builds the root model from config. Views are constructed by the caller
@@ -69,19 +67,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.layout()
 		return m, nil
 
-	case ui.GoToLinearMsg:
-		// Switch to the issue-selecting view (Linear) and select the issue.
-		for i, v := range m.views {
-			if sel, ok := v.(issueSelector); ok {
-				sel.SelectIssue(msg.Identifier)
-				m.current = i
-				m.syncPreviewKey(true)
-				break
-			}
-		}
-		return m, nil
-
 	case tea.KeyMsg:
+		// While the cross-reference picker is open it captures all keys.
+		if m.picker != nil {
+			done, cancelled := m.picker.Update(msg)
+			switch {
+			case cancelled:
+				m.picker, m.pickerRefs = nil, nil
+			case done:
+				ref := m.pickerRefs[m.picker.Index()]
+				m.picker, m.pickerRefs = nil, nil
+				m.followRef(ref)
+			}
+			return m, nil
+		}
 		// While the focused view is capturing text input, route everything to
 		// it (except a hard ctrl+c quit) so global bindings don't steal keys.
 		if len(m.views) > 0 && m.views[m.current].InputActive() {
@@ -115,6 +114,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.PreviewPgDn):
 			m.scrollPreview(m.contentHeight() - 2)
 			return m, nil
+		case key.Matches(msg, m.keys.Follow):
+			// Follow a cross-reference: jump if there's one, pick if several.
+			if refs := m.currentRefs(); len(refs) == 1 {
+				m.followRef(refs[0])
+				return m, nil
+			} else if len(refs) > 1 {
+				p := ui.NewPicker("Follow reference", refLabels(refs))
+				m.picker, m.pickerRefs = &p, refs
+				return m, nil
+			}
+			// No references: fall through to the view.
 		}
 		// Anything else goes to the focused view.
 		return m.updateCurrent(msg)
@@ -171,6 +181,52 @@ func (m Model) contentHeight() int {
 	return max(1, m.height-tabBarHeight-footerHeight)
 }
 
+// currentRefs is the cross-references the focused view exposes for its
+// selection, filtered to those a target view can actually resolve (so regex
+// false-positives never reach the footer or picker). nil if not a Referencer.
+func (m Model) currentRefs() []ui.Ref {
+	r, ok := m.views[m.current].(ui.Referencer)
+	if !ok {
+		return nil
+	}
+	var out []ui.Ref
+	for _, ref := range r.Refs() {
+		if m.canResolve(ref) {
+			out = append(out, ref)
+		}
+	}
+	return out
+}
+
+func (m Model) canResolve(ref ui.Ref) bool {
+	for _, v := range m.views {
+		if t, ok := v.(ui.RefTarget); ok && t.RefKind() == ref.Kind && t.HasRef(ref.ID) {
+			return true
+		}
+	}
+	return false
+}
+
+// followRef switches to the view that handles ref.Kind and selects the target.
+func (m *Model) followRef(ref ui.Ref) {
+	for i, v := range m.views {
+		if t, ok := v.(ui.RefTarget); ok && t.RefKind() == ref.Kind {
+			t.SelectRef(ref.ID)
+			m.current = i
+			m.syncPreviewKey(true)
+			return
+		}
+	}
+}
+
+func refLabels(refs []ui.Ref) []string {
+	labels := make([]string, len(refs))
+	for i, r := range refs {
+		labels[i] = r.Label
+	}
+	return labels
+}
+
 // layout recomputes per-view sizes after a resize.
 func (m *Model) layout() {
 	if !m.ready {
@@ -206,12 +262,25 @@ func (m Model) View() tea.View {
 		m.theme.preview.Height(contentH).Render(clipFrom(cur.PreviewView(), m.previewScroll, contentH)),
 	)
 
-	v.Content = lipgloss.JoinVertical(
+	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		m.renderTabs(),
 		body,
 		m.renderFooter(),
 	)
+
+	// Composite the picker modal centered over the content, if open.
+	if m.picker != nil {
+		box := m.picker.View()
+		x := max(0, (m.width-lipgloss.Width(box))/2)
+		y := max(0, (m.height-lipgloss.Height(box))/2)
+		content = lipgloss.NewCompositor(
+			lipgloss.NewLayer(content),
+			lipgloss.NewLayer(box).X(x).Y(y).Z(1),
+		).Render()
+	}
+
+	v.Content = content
 	return v
 }
 
@@ -250,8 +319,13 @@ func (m Model) renderTabs() string {
 func (m Model) renderFooter() string {
 	var b strings.Builder
 
-	// View-specific bindings first, then the global ones.
-	bindings := append(m.views[m.current].Bindings(),
+	// View-specific bindings first, then a contextual "related" hint (only when
+	// the selection actually links somewhere), then the global ones.
+	bindings := m.views[m.current].Bindings()
+	if len(m.currentRefs()) > 0 {
+		bindings = append(bindings, m.keys.Follow)
+	}
+	bindings = append(bindings,
 		m.keys.NextView, m.keys.PreviewUp, m.keys.Refresh, m.keys.Quit)
 
 	first := true

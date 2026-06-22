@@ -72,9 +72,10 @@ linear:
 | Global | `/` | fuzzy filter |
 | Global | `j`/`k`, `g`/`G`, `ctrl+d`/`ctrl+u` | navigate list |
 | Global | `shift+↑`/`shift+↓`, `PgUp`/`PgDn` | scroll preview |
+| Global | `l` | follow a cross-reference to a related item (picker if several) |
 | Global | `ctrl+r` | refresh |
 | Global | `q` | quit |
-| PRs | `enter` · `d` · `y` · `l` | open · diff · copy URL · jump to referenced Linear issue |
+| PRs | `enter` · `d` · `y` | open · diff · copy URL |
 | Sessions | `enter` · `s` | resume · cycle sort |
 | Linear | `enter` · `y` · `b` | open · copy URL · copy branch |
 
@@ -88,6 +89,16 @@ linear:
   tool / msgs). Originally a Python tool, ported to Go.
 - **Linear** — issues assigned to you (active states), via the Linear GraphQL
   API. Preview shows status, priority, labels, branch name, and the description.
+
+## Cross-references
+
+Views can link to each other. With a PR selected, `l` jumps to the Linear
+issue it references (detected from the title, branch, or body); if it
+references several, a picker appears. Only references that actually resolve to
+a loaded item are offered. The mechanism is generic — a view exposes links by
+implementing `Referencer`, and a view becomes a jump destination by
+implementing `RefTarget` — so more links (issue → its PRs, session → its repo)
+can be added without touching the core.
 
 ## License
 

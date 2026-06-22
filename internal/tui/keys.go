@@ -9,6 +9,7 @@ type globalKeys struct {
 	Refresh     key.Binding
 	Quit        key.Binding
 	Help        key.Binding
+	Follow      key.Binding
 	PreviewUp   key.Binding
 	PreviewDown key.Binding
 	PreviewPgUp key.Binding
@@ -36,6 +37,10 @@ func defaultKeys() globalKeys {
 		Help: key.NewBinding(
 			key.WithKeys("?"),
 			key.WithHelp("?", "help"),
+		),
+		Follow: key.NewBinding(
+			key.WithKeys("l"),
+			key.WithHelp("l", "related"),
 		),
 		PreviewUp: key.NewBinding(
 			key.WithKeys("shift+up"),
