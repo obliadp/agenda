@@ -78,12 +78,13 @@ linear:
 | Global | `/` | fuzzy filter |
 | Global | `j`/`k`, `g`/`G`, `ctrl+d`/`ctrl+u` | navigate list |
 | Global | `shift+↑`/`shift+↓`, `PgUp`/`PgDn` | scroll preview |
-| Global | `l` | follow a cross-reference to a related item (picker if several) |
+| Global | `l` | follow references — opens a picker of related items |
 | Global | `ctrl+r` | refresh |
 | Global | `q` | quit |
 | PRs | `enter` · `d` · `y` | open · diff · copy URL |
 | Sessions | `enter` · `s` | resume · cycle sort |
 | Linear | `enter` · `y` · `b` | open · copy URL · copy branch |
+| Reference picker | `enter` · `o` · `esc` | follow · open in browser · cancel |
 
 ## Views
 
@@ -132,6 +133,28 @@ The cross-reference wiring itself is generic: a view exposes links by
 implementing `Referencer`, and becomes a jump destination by implementing
 `RefTarget`. Adding a new link type is just implementing those interfaces and,
 if needed, publishing to the store — no changes to the core.
+
+## Project layout
+
+```
+main.go                 loads config, wires the views, runs the program
+internal/
+  config/               XDG config loading
+  cache/                generic on-disk JSON cache (instant startup)
+  store/                shared metadata store the views publish to / read from
+  ui/                   reusable widgets: list, picker, two-line rows,
+                        scrollbar, glyphs, cross-reference builders
+  tui/                  root model — tabs, layout, the picker, key routing
+  views/
+    prs/                GitHub pull requests (gh api graphql)
+    sessions/           local agent sessions (JSONL scan + cache)
+    linear/             Linear issues (GraphQL + token)
+```
+
+A view is anything implementing `tui.View`; it gains cross-references by also
+implementing `ui.Referencer` / `ui.RefTarget`. The `tui` package never imports a
+view package — `main` wires them in — so views stay decoupled and the store is
+how they share data.
 
 ## License
 
