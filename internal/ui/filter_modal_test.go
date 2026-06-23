@@ -96,9 +96,9 @@ func TestFilterModalNoLeakOffQueryRow(t *testing.T) {
 func TestFilterModalVimNavOffQueryRow(t *testing.T) {
 	// j/k navigate when the cursor is off the query row (matching the list/picker).
 	m := NewFilterModal("x", "", []string{"repo", "branch"}, nil, false)
-	m.Update(tea.KeyPressMsg{Code: tea.KeyDown})        // query -> repo
-	m.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})     // repo -> branch
-	m.Update(tea.KeyPressMsg{Code: ' ', Text: " "})     // toggle branch off
+	m.Update(tea.KeyPressMsg{Code: tea.KeyDown})    // query -> repo
+	m.Update(tea.KeyPressMsg{Code: 'j', Text: "j"}) // repo -> branch
+	m.Update(tea.KeyPressMsg{Code: ' ', Text: " "}) // toggle branch off
 	if strings.Join(m.EnabledFields(), ",") != "repo" {
 		t.Errorf("EnabledFields() = %v, want [repo] (j moved to branch, space toggled it)", m.EnabledFields())
 	}

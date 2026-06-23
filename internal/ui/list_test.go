@@ -11,13 +11,15 @@ import (
 type strItem string
 
 func (s strItem) Render(width int, selected bool, hl Highlighter) string { return string(s) }
-func (s strItem) Fields() []Field { return []Field{{Name: "text", Text: string(s)}} }
-func (s strItem) Filter() string  { return string(s) }
+func (s strItem) Fields() []Field                                        { return []Field{{Name: "text", Text: string(s)}} }
+func (s strItem) Filter() string                                         { return string(s) }
 
 // fieldItem is a multi-field Item for scoped-filter tests.
 type fieldItem struct{ repo, title string }
 
-func (f fieldItem) Render(width int, selected bool, hl Highlighter) string { return f.repo + " " + f.title }
+func (f fieldItem) Render(width int, selected bool, hl Highlighter) string {
+	return f.repo + " " + f.title
+}
 func (f fieldItem) Fields() []Field {
 	return []Field{{Name: "repo", Text: f.repo}, {Name: "title", Text: f.title}}
 }
