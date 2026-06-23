@@ -249,3 +249,27 @@ func TestListFieldNames(t *testing.T) {
 		t.Errorf("FieldNames() = %v, want [repo title]", got)
 	}
 }
+
+func TestListEnabledFields(t *testing.T) {
+	l := NewList[fieldItem]()
+	l.SetItems([]fieldItem{{repo: "a", title: "b"}})
+
+	// All on by default → empty (all).
+	if got := l.EnabledFields(); len(got) != 0 {
+		t.Errorf("default EnabledFields() = %v, want empty (all on)", got)
+	}
+
+	// Scope to a subset → names in declaration order (repo before title),
+	// regardless of the order passed in.
+	l.SetEnabledFields([]string{"title", "repo"})
+	got := l.EnabledFields()
+	if len(got) != 2 || got[0] != "repo" || got[1] != "title" {
+		t.Errorf("EnabledFields() = %v, want [repo title] in declaration order", got)
+	}
+
+	// Back to all → empty again.
+	l.SetEnabledFields(nil)
+	if got := l.EnabledFields(); len(got) != 0 {
+		t.Errorf("EnabledFields() after nil = %v, want empty (all on)", got)
+	}
+}
