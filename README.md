@@ -75,7 +75,9 @@ linear:
 | Scope | Key | Action |
 |-------|-----|--------|
 | Global | `tab` / `shift+tab` | switch view |
-| Global | `/` | fuzzy filter |
+| Global | `1`…`9` | jump to a view by tab position |
+| Global | `/` | fuzzy filter (all fields) |
+| Global | `f` | field-scoped filter popup |
 | Global | `j`/`k`, `g`/`G`, `ctrl+d`/`ctrl+u` | navigate list |
 | Global | `shift+↑`/`shift+↓`, `PgUp`/`PgDn` | scroll preview |
 | Global | `l` | follow references — opens a picker of related items |
@@ -85,9 +87,16 @@ linear:
 | Sessions | `enter` · `s` | resume · cycle sort |
 | Linear | `enter` · `y` · `b` | open · copy URL · copy branch |
 | Reference picker | `enter` · `o` · `esc` | follow · open in browser · cancel |
+| Filter popup (`f`) | `↑`/`↓` (or `j`/`k`) · `space` · `enter` · `esc` | move · toggle field · apply · cancel |
 
 While the filter (`/`) is open, typing refines the query; arrows, `ctrl+u`/`ctrl+d`,
 and `home`/`end` still move the selection, so you can narrow and navigate at once.
+
+`f` opens a popup to scope the filter to specific fields (contextual per view —
+e.g. repo, branch, title, description for PRs) and toggle case sensitivity. One
+cursor walks the whole popup: the query box at the top, then the field toggles,
+then the case-sensitive row. `1`…`9` jump straight to a view by its tab position
+(shown as a number prefix in each tab label).
 
 ## Views
 

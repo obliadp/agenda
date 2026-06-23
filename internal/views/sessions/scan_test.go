@@ -159,6 +159,18 @@ func TestParseClaudeFallsBackToLastPrompt(t *testing.T) {
 	}
 }
 
+func TestParseClaudeFallsBackToFirstPrompt(t *testing.T) {
+	dir := t.TempDir()
+	// A single user prompt and no titles: first == last, so the first-prompt
+	// fallback is what surfaces.
+	content := `{"type":"user","message":{"content":"only prompt"}}
+`
+	m := parseClaude(writeFile(t, dir, "s.jsonl", content))
+	if m.Title != "only prompt" {
+		t.Errorf("Title = %q, want the sole user prompt", m.Title)
+	}
+}
+
 func TestParseCodex(t *testing.T) {
 	dir := t.TempDir()
 	content := `{"type":"session_meta","payload":{"cwd":"/x/y","id":"sess-42"}}
