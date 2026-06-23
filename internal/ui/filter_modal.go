@@ -17,9 +17,10 @@ type FilterModal struct {
 	fields        []fieldToggle
 	caseSensitive bool
 
-	focusList bool // false = query box focused, true = toggle list focused
-	cursor    int  // index into the toggle rows: 0..len(fields)-1 = fields,
-	// len(fields) = the case-sensitive row.
+	// cursor walks one continuous list: 0 = query box, 1..len(fields) = field
+	// toggles, len(fields)+1 = the case-sensitive row. ↑/↓ moves through all of
+	// it; printable keys type only on the query row, space toggles on the others.
+	cursor int
 }
 
 type fieldToggle struct {
@@ -42,8 +43,11 @@ func NewFilterModal(title, query string, fields, enabled []string, caseSensitive
 	return FilterModal{title: title, query: query, fields: toggles, caseSensitive: caseSensitive}
 }
 
-// rowCount is the number of selectable toggle rows (fields + case row).
-func (m *FilterModal) rowCount() int { return len(m.fields) + 1 }
+// lastRow is the index of the bottom row (the case-sensitive toggle).
+func (m *FilterModal) lastRow() int { return len(m.fields) + 1 }
+
+// onQuery reports whether the cursor is on the query box (the top row).
+func (m *FilterModal) onQuery() bool { return m.cursor == 0 }
 
 // Update handles keys. done is true when the user applied (read state via
 // Query/EnabledFields/CaseSensitive); cancelled is true when they dismissed it.
@@ -57,28 +61,29 @@ func (m *FilterModal) Update(msg tea.Msg) (done, cancelled bool) {
 		return true, false
 	case "esc", "ctrl+c":
 		return false, true
-	case "tab":
-		m.focusList = !m.focusList
-		return false, false
-	}
-
-	if m.focusList {
-		switch km.String() {
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < m.rowCount()-1 {
-				m.cursor++
-			}
-		case " ", "space":
-			m.toggle()
+	case "up":
+		if m.cursor > 0 {
+			m.cursor--
 		}
 		return false, false
+	case "down":
+		if m.cursor < m.lastRow() {
+			m.cursor++
+		}
+		return false, false
+	case " ", "space":
+		// Space toggles a toggle row; on the query row it's a literal space.
+		if !m.onQuery() {
+			m.toggle()
+			return false, false
+		}
 	}
 
-	// Query box focused.
+	// Remaining keys edit the query, but only when the cursor is on it — so
+	// printable keys never leak into the query while a toggle row is selected.
+	if !m.onQuery() {
+		return false, false
+	}
 	switch km.String() {
 	case "backspace":
 		if m.query != "" {
@@ -93,13 +98,13 @@ func (m *FilterModal) Update(msg tea.Msg) (done, cancelled bool) {
 	return false, false
 }
 
-// toggle flips the row under the cursor.
+// toggle flips the toggle row under the cursor (cursor is 1..lastRow here).
 func (m *FilterModal) toggle() {
-	if m.cursor == len(m.fields) {
+	if m.cursor == m.lastRow() {
 		m.caseSensitive = !m.caseSensitive
 		return
 	}
-	m.fields[m.cursor].on = !m.fields[m.cursor].on
+	m.fields[m.cursor-1].on = !m.fields[m.cursor-1].on
 }
 
 func (m *FilterModal) Query() string       { return m.query }
@@ -125,22 +130,22 @@ func (m *FilterModal) View() string {
 	const innerW = 30
 	divider := faint.Render(strings.Repeat("─", innerW))
 
-	// Section 1: query box.
+	// Section 1: query box (cursor row 0). The caret shows when it's selected.
 	qCursor := ""
-	if !m.focusList {
+	if m.onQuery() {
 		qCursor = "█"
 	}
 	query := m.query + qCursor
 
-	// Section 2: field toggles.
+	// Section 2: field toggles (cursor rows 1..len(fields)).
 	var fieldLines []string
 	for i, f := range m.fields {
-		fieldLines = append(fieldLines, m.toggleRow(f.name, f.on, m.focusList && m.cursor == i, accent))
+		fieldLines = append(fieldLines, m.toggleRow(f.name, f.on, m.cursor == i+1, accent))
 	}
 
-	// Section 3: case-sensitive toggle.
+	// Section 3: case-sensitive toggle (cursor row lastRow).
 	caseRow := m.toggleRow("case sensitive", m.caseSensitive,
-		m.focusList && m.cursor == len(m.fields), accent)
+		m.cursor == m.lastRow(), accent)
 
 	body := strings.Join([]string{
 		query,
@@ -149,7 +154,7 @@ func (m *FilterModal) View() string {
 		divider,
 		caseRow,
 		"",
-		faint.Render("tab focus · space toggle · enter apply · esc cancel"),
+		faint.Render("↑/↓ move · space toggle · enter apply · esc cancel"),
 	}, "\n")
 
 	titled := lipgloss.NewStyle().Bold(true).Render(m.title) + "\n" + body

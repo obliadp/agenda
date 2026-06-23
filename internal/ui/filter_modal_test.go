@@ -14,6 +14,7 @@ func typeRunes(m *FilterModal, s string) {
 }
 
 func TestFilterModalTypingAndApply(t *testing.T) {
+	// Cursor starts on the query row, so typing edits the query.
 	m := NewFilterModal("Filter PRs", "", []string{"repo", "branch", "title"}, nil, false)
 	typeRunes(&m, "oauth")
 	if m.Query() != "oauth" {
@@ -25,25 +26,44 @@ func TestFilterModalTypingAndApply(t *testing.T) {
 }
 
 func TestFilterModalToggleFields(t *testing.T) {
+	// One continuous list: row 0 is the query, rows 1.. are field toggles.
+	// Down twice moves query -> repo -> branch, then space toggles branch OFF.
 	m := NewFilterModal("x", "", []string{"repo", "branch", "title"}, nil, false)
-	// Switch focus to the field list, move to "branch", toggle it OFF.
-	m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // query -> repo
 	m.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // repo -> branch
 	m.Update(tea.KeyPressMsg{Code: ' ', Text: " "})
 	got := m.EnabledFields()
-	// branch removed; repo and title remain.
 	if strings.Join(got, ",") != "repo,title" {
 		t.Errorf("EnabledFields() = %v, want [repo title]", got)
 	}
 }
 
 func TestFilterModalCaseSensitiveRow(t *testing.T) {
+	// Down past the single field row lands on the case-sensitive row.
 	m := NewFilterModal("x", "", []string{"repo"}, nil, false)
-	m.Update(tea.KeyPressMsg{Code: tea.KeyTab})  // focus list, cursor on "repo"
-	m.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // move onto the case-sensitive row
+	m.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // query -> repo
+	m.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // repo -> case sensitive
 	m.Update(tea.KeyPressMsg{Code: ' ', Text: " "})
 	if !m.CaseSensitive() {
 		t.Errorf("CaseSensitive() = false after toggling its row, want true")
+	}
+}
+
+func TestFilterModalCursorClamps(t *testing.T) {
+	// Up from the top row stays on the query; down past the last row clamps.
+	m := NewFilterModal("x", "", []string{"repo"}, nil, false)
+	m.Update(tea.KeyPressMsg{Code: tea.KeyUp}) // already at top (query) -> stays
+	typeRunes(&m, "z")
+	if m.Query() != "z" {
+		t.Errorf("Query()=%q, want z (cursor stayed on query row at top)", m.Query())
+	}
+	// Walk to the bottom (query -> repo -> case) and one extra down (clamps).
+	m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // clamp at case row
+	m.Update(tea.KeyPressMsg{Code: ' ', Text: " "})
+	if !m.CaseSensitive() {
+		t.Errorf("expected cursor clamped on case row; CaseSensitive()=false")
 	}
 }
 
@@ -62,12 +82,14 @@ func TestFilterModalBackspace(t *testing.T) {
 	}
 }
 
-func TestFilterModalNoLeakWhileListFocused(t *testing.T) {
+func TestFilterModalNoLeakOffQueryRow(t *testing.T) {
+	// When the cursor is on a toggle row, printable keys must NOT type into
+	// the query.
 	m := NewFilterModal("x", "", []string{"repo"}, nil, false)
-	m.Update(tea.KeyPressMsg{Code: tea.KeyTab}) // focus the field list
+	m.Update(tea.KeyPressMsg{Code: tea.KeyDown}) // query -> repo
 	m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
 	if m.Query() != "" {
-		t.Errorf("char leaked into query while list focused: Query()=%q, want empty", m.Query())
+		t.Errorf("char leaked into query while cursor off the query row: Query()=%q, want empty", m.Query())
 	}
 }
 
