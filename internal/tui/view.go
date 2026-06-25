@@ -53,4 +53,8 @@ type View interface {
 	// or "" if none. The root model uses it to reset the preview scroll offset
 	// when the selection changes.
 	PreviewKey() string
+
+	// Loading reports whether the view is currently fetching data, so the
+	// chrome can show a spinner in its tab.
+	Loading() bool
 }

@@ -269,8 +269,11 @@ func (v *View) Init() tea.Cmd {
 	if v.token == "" {
 		return nil
 	}
+	v.loading = true
 	return v.fetch()
 }
+
+func (v *View) Loading() bool { return v.loading }
 
 const graphqlQuery = `query {
   viewer {
