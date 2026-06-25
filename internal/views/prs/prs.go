@@ -279,7 +279,12 @@ const cacheName = "prs"
 
 func (v *View) Title() string { return "PRs" }
 
-func (v *View) Init() tea.Cmd { return v.fetch() }
+func (v *View) Init() tea.Cmd {
+	v.loading = true
+	return v.fetch()
+}
+
+func (v *View) Loading() bool { return v.loading }
 
 const graphqlQuery = `query($q: String!) {
   search(query: $q, type: ISSUE, first: 100) {

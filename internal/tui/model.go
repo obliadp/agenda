@@ -2,6 +2,7 @@ package tui
 
 import (
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -41,6 +42,29 @@ type Model struct {
 
 	// field-scoped filter modal (nil unless open).
 	filter *ui.FilterModal
+
+	// spinnerFrame advances the animation in tabs whose view is loading.
+	spinnerFrame int
+}
+
+// spinnerTickMsg advances the tab spinner animation.
+type spinnerTickMsg struct{}
+
+// spinnerFrames is a braille spinner cycled while a view is fetching.
+var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+func spinnerTick() tea.Cmd {
+	return tea.Tick(time.Second/12, func(time.Time) tea.Msg { return spinnerTickMsg{} })
+}
+
+// anyLoading reports whether any view is currently fetching.
+func (m Model) anyLoading() bool {
+	for _, v := range m.views {
+		if v.Loading() {
+			return true
+		}
+	}
+	return false
 }
 
 // New builds the root model from config. Views are constructed by the caller
@@ -55,10 +79,13 @@ func New(cfg config.Config, views []View) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	cmds := make([]tea.Cmd, 0, len(m.views))
+	cmds := make([]tea.Cmd, 0, len(m.views)+1)
 	for _, v := range m.views {
 		cmds = append(cmds, v.Init())
 	}
+	// The views start out fetching, so kick the spinner loop; it stops itself
+	// once nothing is loading.
+	cmds = append(cmds, spinnerTick())
 	return tea.Batch(cmds...)
 }
 
@@ -69,6 +96,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ready = true
 		m.layout()
 		return m, nil
+
+	case spinnerTickMsg:
+		// Keep the loop alive only while something is still loading.
+		if !m.anyLoading() {
+			return m, nil
+		}
+		m.spinnerFrame++
+		return m, spinnerTick()
 
 	case tea.KeyMsg:
 		// While the cross-reference picker is open it captures all keys.
@@ -124,7 +159,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.syncPreviewKey(true)
 			return m, nil
 		case key.Matches(msg, m.keys.Refresh):
-			return m, m.views[m.current].Init()
+			// Init() flips the view back into its loading state. Only start a
+			// spinner loop if one isn't already running (i.e. nothing was loading).
+			wasLoading := m.anyLoading()
+			cmd := m.views[m.current].Init()
+			if wasLoading {
+				return m, cmd
+			}
+			return m, tea.Batch(cmd, spinnerTick())
 		case key.Matches(msg, m.keys.PreviewUp):
 			m.scrollPreview(-1)
 			return m, nil
@@ -433,6 +475,10 @@ func (m Model) renderTabs() string {
 		label := v.Title()
 		if i < 9 {
 			label = string(rune('1'+i)) + " " + label
+		}
+		// Append a spinner glyph while the view is fetching.
+		if v.Loading() {
+			label += " " + spinnerFrames[m.spinnerFrame%len(spinnerFrames)]
 		}
 		labels[i] = style.Render(label)
 	}

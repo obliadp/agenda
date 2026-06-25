@@ -161,7 +161,12 @@ func New(st *store.Store) *View {
 
 func (v *View) Title() string { return "Sessions" }
 
-func (v *View) Init() tea.Cmd { return v.fetch() }
+func (v *View) Init() tea.Cmd {
+	v.loading = true
+	return v.fetch()
+}
+
+func (v *View) Loading() bool { return v.loading }
 
 func (v *View) fetch() tea.Cmd {
 	return func() tea.Msg { return loadedMsg(collect()) }
