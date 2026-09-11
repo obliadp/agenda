@@ -12,14 +12,14 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/obliadp/agenda/internal/config"
-	"github.com/obliadp/agenda/internal/notify"
-	"github.com/obliadp/agenda/internal/store"
-	"github.com/obliadp/agenda/internal/tui"
-	"github.com/obliadp/agenda/internal/ui"
-	"github.com/obliadp/agenda/internal/views/linear"
-	"github.com/obliadp/agenda/internal/views/prs"
-	"github.com/obliadp/agenda/internal/views/sessions"
+	"github.com/sanity-labs/agenda/internal/config"
+	"github.com/sanity-labs/agenda/internal/notify"
+	"github.com/sanity-labs/agenda/internal/store"
+	"github.com/sanity-labs/agenda/internal/tui"
+	"github.com/sanity-labs/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/views/linear"
+	"github.com/sanity-labs/agenda/internal/views/prs"
+	"github.com/sanity-labs/agenda/internal/views/sessions"
 )
 
 func main() {

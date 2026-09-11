@@ -3,7 +3,7 @@ package linear
 import (
 	"testing"
 
-	"github.com/obliadp/agenda/internal/config"
+	"github.com/sanity-labs/agenda/internal/config"
 )
 
 func TestBuildFilterDefault(t *testing.T) {

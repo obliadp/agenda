@@ -3,8 +3,8 @@ package tui
 import (
 	"charm.land/bubbles/v2/key"
 
-	"github.com/obliadp/agenda/internal/config"
-	"github.com/obliadp/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/config"
+	"github.com/sanity-labs/agenda/internal/ui"
 )
 
 // globalKeys are handled by the root model regardless of the active view.

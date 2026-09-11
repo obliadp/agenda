@@ -12,7 +12,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/obliadp/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/ui"
 )
 
 // The navigation pane: a Linear-desktop-style tree on the far left with the

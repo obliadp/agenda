@@ -11,7 +11,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/obliadp/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/ui"
 )
 
 // PR comments: the top-level conversation, review summaries, and inline

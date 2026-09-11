@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/obliadp/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/ui"
 )
 
 func mkGrouped(id, stateName, stateType, project string, priority int, age time.Duration) issue {

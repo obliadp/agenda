@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/obliadp/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/ui"
 )
 
 func mkSess(cwd, tl string, msgs int) session {

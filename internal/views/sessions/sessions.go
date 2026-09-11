@@ -16,9 +16,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/obliadp/agenda/internal/config"
-	"github.com/obliadp/agenda/internal/store"
-	"github.com/obliadp/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/config"
+	"github.com/sanity-labs/agenda/internal/store"
+	"github.com/sanity-labs/agenda/internal/ui"
 )
 
 func (s session) toolStyle() lipgloss.Style {

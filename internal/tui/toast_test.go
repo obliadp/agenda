@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/obliadp/agenda/internal/config"
-	"github.com/obliadp/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/config"
+	"github.com/sanity-labs/agenda/internal/ui"
 )
 
 func TestToastLifecycle(t *testing.T) {

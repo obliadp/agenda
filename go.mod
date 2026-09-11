@@ -1,4 +1,4 @@
-module github.com/obliadp/agenda
+module github.com/sanity-labs/agenda
 
 go 1.25.8
 
