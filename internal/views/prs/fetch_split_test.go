@@ -3,7 +3,7 @@ package prs
 import (
 	"errors"
 
-	"github.com/obliadp/agenda/internal/config"
+	"github.com/sanity-labs/agenda/internal/config"
 	"strings"
 	"testing"
 	"time"

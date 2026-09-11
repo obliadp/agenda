@@ -1,6 +1,6 @@
 # agenda
 
-[![CI](https://github.com/obliadp/agenda/actions/workflows/ci.yml/badge.svg)](https://github.com/obliadp/agenda/actions/workflows/ci.yml)
+[![CI](https://github.com/sanity-labs/agenda/actions/workflows/ci.yml/badge.svg)](https://github.com/sanity-labs/agenda/actions/workflows/ci.yml)
 
 A terminal dashboard that unifies the things you keep checking into one TUI you
 tab between:
@@ -49,7 +49,7 @@ Linear in one switcher.
 ## Install
 
 ```sh
-go install github.com/obliadp/agenda@latest
+go install github.com/sanity-labs/agenda@latest
 ```
 
 `agenda` opens on the first tab; `agenda prs` / `agenda sessions` /

@@ -5,7 +5,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/obliadp/agenda/internal/config"
+	"github.com/sanity-labs/agenda/internal/config"
 )
 
 func press(r rune) tea.KeyPressMsg   { return tea.KeyPressMsg{Code: r, Text: string(r)} }

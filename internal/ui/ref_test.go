@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/obliadp/agenda/internal/store"
+	"github.com/sanity-labs/agenda/internal/store"
 )
 
 func TestPRRefWithTitle(t *testing.T) {

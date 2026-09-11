@@ -11,7 +11,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/obliadp/agenda/internal/ui"
+	"github.com/sanity-labs/agenda/internal/ui"
 )
 
 // Notifier posts one notification and returns the message the UI should

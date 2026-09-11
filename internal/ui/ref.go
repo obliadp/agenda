@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/obliadp/agenda/internal/store"
+	"github.com/sanity-labs/agenda/internal/store"
 )
 
 // These ref builders live here so every view renders cross-references the same
