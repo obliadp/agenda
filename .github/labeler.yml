@@ -1,0 +1,52 @@
+# Path-based PR labels (actions/labeler), complementing release-drafter's
+# title-based autolabeler. Type labels feed the drafter's changelog
+# categories and version bump; area labels are informational.
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - ".goreleaser.yml"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "config.example.yml"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "go.mod"
+          - "go.sum"
+
+prs-view:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "internal/views/prs/**"
+
+linear-view:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "internal/views/linear/**"
+
+sessions-view:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "internal/views/sessions/**"
+
+tui:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "internal/tui/**"
+          - "internal/ui/**"
+
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "internal/config/**"
+
+notifications:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "internal/notify/**"
