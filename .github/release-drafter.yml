@@ -3,11 +3,16 @@
 name-template: "v$RESOLVED_VERSION"
 tag-template: "v$RESOLVED_VERSION"
 
+# Type labels come from the title autolabeler below and from path-based
+# labels (.github/labeler.yml via actions/labeler); either source is enough
+# to categorize a PR.
 categories:
   - title: Features
     labels: [feature]
   - title: Fixes
     labels: [fix]
+  - title: Dependencies
+    labels: [dependencies]
   - title: Other
     labels: [chore, docs, ci]
 
@@ -31,7 +36,7 @@ version-resolver:
   minor:
     labels: [feature]
   patch:
-    labels: [fix, chore, docs, ci]
+    labels: [fix, chore, docs, ci, dependencies]
   default: patch
 
 change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
