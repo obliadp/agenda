@@ -122,6 +122,9 @@ github:
   # Show that section on startup. Off by default: the view opens with just
   # your own PRs, as it always did.
   show_review_requested: false
+  # In the review-requested section, dim PRs you have already reviewed and
+  # tag them "reviewed" so the eye can skip them. Off by default.
+  mark_reviewed: false
   # Render diffs in the right pane on 'd'. Off by default: 'd' pages the
   # diff through less, the original behavior. The comments pane ('c') and
   # inline-thread annotations need this on to show threads in the diff.

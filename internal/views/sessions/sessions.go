@@ -336,7 +336,12 @@ func (v *View) Update(msg tea.Msg) tea.Cmd {
 				return nil
 			}
 		}
+		before := v.list.Selected().Path
 		if consumed, cmd := v.list.Update(msg); consumed {
+			if v.list.Selected().Path != before {
+				// Moving on ends a transient preview reveal.
+				return tea.Batch(cmd, ui.ConcealPreview)
+			}
 			return cmd
 		}
 		if v.list.Filtering() {

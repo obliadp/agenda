@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -78,3 +79,20 @@ func TimeBucketAt(t, now time.Time) string {
 
 // TimeBucket is TimeBucketAt against the current time.
 func TimeBucket(t time.Time) string { return TimeBucketAt(t, time.Now()) }
+
+// RevealPreviewMsg asks the root model to unhide the preview pane: a view is
+// about to render something into it (a diff, comments, a thread jump) and a
+// hidden pane would leave the user wondering where it went.
+type RevealPreviewMsg struct{}
+
+// RevealPreview is the tea.Cmd form of RevealPreviewMsg.
+func RevealPreview() tea.Msg { return RevealPreviewMsg{} }
+
+// ConcealPreviewMsg returns a transiently-revealed preview (see
+// RevealPreviewMsg) to its hidden state: the selection moved on, or the
+// action that needed the pane finished. A no-op when the user showed the
+// pane deliberately.
+type ConcealPreviewMsg struct{}
+
+// ConcealPreview is the tea.Cmd form of ConcealPreviewMsg.
+func ConcealPreview() tea.Msg { return ConcealPreviewMsg{} }

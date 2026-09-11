@@ -39,6 +39,10 @@ type Model struct {
 	// previewHidden drops the preview pane, giving the list the full width
 	// (the toggle_preview key flips it; hide_preview sets the startup state).
 	previewHidden bool
+	// previewTransient marks a reveal that happened for an action (diff,
+	// comments) rather than by the user's toggle; it re-hides when the
+	// selection moves on or the action completes.
+	previewTransient bool
 
 	// preview scrolling, owned centrally so it works the same in every view.
 	previewScroll int
@@ -205,6 +209,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case ui.RevealPreviewMsg:
+		if m.previewHidden {
+			m.previewHidden, m.previewTransient = false, true
+			m.layout()
+		}
+		return m, nil
+	case ui.ConcealPreviewMsg:
+		if m.previewTransient {
+			m.previewHidden, m.previewTransient = true, false
+			m.layout()
+		}
+		return m, nil
 	case ui.ToastMsg:
 		m.toast = &msg
 		m.toastGen++
@@ -328,10 +344,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.NextView):
 			m.current = (m.current + 1) % len(m.views)
 			m.syncPreviewKey(true)
+			m.concealTransient()
 			return m, nil
 		case key.Matches(msg, m.keys.PrevView):
 			m.current = (m.current - 1 + len(m.views)) % len(m.views)
 			m.syncPreviewKey(true)
+			m.concealTransient()
 			return m, nil
 		case key.Matches(msg, m.keys.Config):
 			// Printable config bindings land here, after input routing.
@@ -345,7 +363,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.layout() // preview width changed; views re-wrap their content
 			return m, nil
 		case key.Matches(msg, m.keys.TogglePreview):
-			m.previewHidden = !m.previewHidden
+			// A deliberate toggle overrides any transient reveal state.
+			m.previewHidden, m.previewTransient = !m.previewHidden, false
 			m.layout()
 			return m, nil
 		case key.Matches(msg, m.keys.Refresh):
@@ -449,6 +468,14 @@ func (m Model) broadcast(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// concealTransient ends a transient reveal (see ui.ConcealPreviewMsg).
+func (m *Model) concealTransient() {
+	if m.previewTransient {
+		m.previewHidden, m.previewTransient = true, false
+		m.layout()
+	}
+}
+
 // syncPreviewKey resets the preview scroll to the top when the selected item
 // changes (or always, when force is set, e.g. on a view switch).
 func (m *Model) syncPreviewKey(force bool) {
@@ -529,7 +556,7 @@ func (m *Model) applyConfigChange(path string) tea.Cmd {
 	case path == "grouping":
 		return groupingCmd(m.cfg.Grouping)
 	case path == "hide_preview":
-		m.previewHidden = m.cfg.HidePreview
+		m.previewHidden, m.previewTransient = m.cfg.HidePreview, false
 		m.layout()
 	case strings.HasPrefix(path, "refresh."):
 		m.refresh = refreshIntervals(m.cfg, m.views)

@@ -161,7 +161,10 @@ out of the box agenda looks and acts as it did before these options existed.
   are worst-first — changes requested and failing checks float to the top,
   approved and green sink to the bottom — and `size` puts the smallest diff
   first. All modes tie-break on recency. `w` adds PRs waiting on your review
-  under a separator (`github.show_review_requested` makes that the default).
+  under a separator (`github.show_review_requested` makes that the default);
+  with `github.mark_reviewed`, PRs there you've already reviewed render dim
+  with a `reviewed` tag — instantly after an in-app review — so your eye
+  skips them.
   `d` pages the diff through `less`; with `github.diff_pane` it renders in
   the right pane instead, with inline review threads pinned to the lines
   they discuss. `c` shows the full conversation. `r`/`a` review and approve

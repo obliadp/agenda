@@ -2,7 +2,11 @@ package prs
 
 import (
 	"slices"
+	"strings"
 	"testing"
+
+	"github.com/obliadp/agenda/internal/config"
+	"github.com/obliadp/agenda/internal/ui"
 )
 
 func TestPRFields(t *testing.T) {
@@ -83,5 +87,82 @@ func TestLinearRefs(t *testing.T) {
 				t.Errorf("linearRefs() = %v, want %v", got, c.want)
 			}
 		})
+	}
+}
+
+func TestReviewedByMe(t *testing.T) {
+	cases := map[string]bool{
+		"APPROVED":          true,
+		"CHANGES_REQUESTED": true,
+		"COMMENTED":         true,
+		"DISMISSED":         false, // dismissed: a re-review is wanted
+		"PENDING":           false, // unsubmitted draft review
+		"":                  false,
+	}
+	for state, want := range cases {
+		p := pr{}
+		p.ViewerLatestReview.State = state
+		if got := p.reviewedByMe(); got != want {
+			t.Errorf("reviewedByMe(%q) = %v, want %v", state, got, want)
+		}
+	}
+}
+
+func TestApplySortMarksOnlyReviewSection(t *testing.T) {
+	mine := pr{Number: 1, Title: "mine", URL: "u1"}
+	mine.ViewerLatestReview.State = "APPROVED" // self-review noise must not mark own PRs
+	done := pr{Number: 2, Title: "done", URL: "u2"}
+	done.ViewerLatestReview.State = "APPROVED"
+	todo := pr{Number: 3, Title: "todo", URL: "u3"}
+
+	v := New(config.GitHubConfig{MarkReviewed: true}, nil, nil, nil)
+	v.showReview = true
+	v.raw = []pr{mine}
+	v.reviewRaw = []pr{done, todo}
+	v.applySort()
+
+	for _, p := range v.list.Items() {
+		switch p.Number {
+		case 1:
+			if p.Reviewed {
+				t.Error("own PR marked Reviewed; must apply to the review section only")
+			}
+		case 2:
+			if !p.Reviewed {
+				t.Error("approved review-requested PR not marked Reviewed")
+			}
+		case 3:
+			if p.Reviewed {
+				t.Error("unreviewed PR marked Reviewed")
+			}
+		}
+	}
+}
+
+func TestApplySortMarkReviewedOffByDefault(t *testing.T) {
+	done := pr{Number: 2, Title: "done", URL: "u2"}
+	done.ViewerLatestReview.State = "APPROVED"
+
+	v := New(config.GitHubConfig{}, nil, nil, nil)
+	v.showReview = true
+	v.reviewRaw = []pr{done}
+	v.applySort()
+	for _, p := range v.list.Items() {
+		if p.Reviewed {
+			t.Error("Reviewed set with mark_reviewed off; default must match upstream")
+		}
+	}
+}
+
+func TestRenderReviewedTag(t *testing.T) {
+	p := pr{Number: 7, Title: "fix the bug", Reviewed: true}
+	p.Repository.NameWithOwner = "o/r"
+	out := p.Render(80, false, ui.Highlighter{})
+	if !strings.Contains(out, "· reviewed") {
+		t.Errorf("reviewed row missing tag:\n%s", out)
+	}
+	p.Reviewed = false
+	if strings.Contains(p.Render(80, false, ui.Highlighter{}), "· reviewed") {
+		t.Error("unreviewed row carries the reviewed tag")
 	}
 }

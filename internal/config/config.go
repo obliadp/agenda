@@ -101,6 +101,10 @@ type GitHubConfig struct {
 	// DiffPane renders diffs in the preview pane on 'd'. Off by default:
 	// 'd' then pages the diff through less, the original behavior.
 	DiffPane bool `yaml:"diff_pane"`
+	// MarkReviewed dims review-requested rows the viewer has already
+	// reviewed and tags them "reviewed", so the eye can skip them. Off by
+	// default.
+	MarkReviewed bool `yaml:"mark_reviewed"`
 }
 
 type LinearConfig struct {
